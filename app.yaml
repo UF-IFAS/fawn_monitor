@@ -1,0 +1,26 @@
+application: fawn-monitor
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: true
+handlers:
+- url: /monitor
+  script: monitor.application
+  
+- url: /
+  script: monitor.application
+  
+- url: /queryLastRecord
+  script: util.application
+
+- url: /modifyData
+  script: util.application
+
+- url: /queryRecord
+  script: util.application
+  
+- url: /js
+  static_dir: js
+  
+
+  
