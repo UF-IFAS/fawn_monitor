@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 # Name:        util.py
-# Purpose:     1. find last error record in the database
-#
+# Purpose:     1. find last error record in the database  fawn-monitor.appspot.com/queryLastRecord
+#              2. query record in specific date range fawn-monitor.appspot.com/queryRecord
 # Author:      Dawei Jia
 #
 # Created:     12/19/2013
@@ -11,6 +11,7 @@
 import logging
 import datetime
 import database
+from monitor import Monitor
 from google.appengine.api import users
 #from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
@@ -62,7 +63,7 @@ class queryRecord(webapp2.RequestHandler):
                                 """% (startTime[2],startTime[0],startTime[1],endTime[2],endTime[0],endTime[1]))
             results = query.fetch(100)
             self.response.out.write("----RESULT----<br />")
-            self.response.out.write("""<table border="1"cellpadding="5"><tr>
+            self.response.out.write("""<table border="1" cellpadding="5"><tr>
                                         <th>error_code</th>
                                         <th>error_details</th>
                                         <th>error_time</th>
@@ -77,7 +78,22 @@ class queryRecord(webapp2.RequestHandler):
                                         </tr>"""%(str(result.error_code),str(result.error_details),str(result.error_time),str(result.record_time)))
         self.response.out.write("""</table></body></html>""")
 
+class changeTimeDelta(webapp2.RequestHandler):
+    def get(self):
+        self.response.out.write("""<html>
+                                    <head>
+                                    <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+                                    <head/>
+                                    <body>
+
+
+        """)
+        self.response.out.write("""</body></html>""")
+
 application = webapp2.WSGIApplication(
                                     [('/queryLastRecord',queryLastRecord),
-                                     ('/queryRecord',queryRecord)],
+                                     ('/queryRecord',queryRecord),
+                                     ('/changeTimeDelta',changeTimeDelta)],
                                     debug = True)
+
+

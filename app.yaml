@@ -19,6 +19,9 @@ handlers:
 - url: /queryRecord
   script: util.application
   
+- url: /changeTimeDelta
+  script: util.application
+  
 - url: /js
   static_dir: js
   

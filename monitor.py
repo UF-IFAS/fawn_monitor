@@ -1,7 +1,8 @@
 #-------------------------------------------------------------------------------
 # Name:        monitor.py
 # Purpose:     1. check availbility http://fawn.ifas.ufl.edu/controller.php/latestmapjson/
-#              2. check data timeliness for 42 fawn stations
+#              2. check data timeliness for 42 fawn stations fawn-monitor.appspot.com/
+#                   fawn-monitor.appspot.com/monitor
 # Author:      Dawei Jia
 #
 # Created:     12/09/2013
@@ -26,9 +27,10 @@ class Monitor(webapp2.RequestHandler):
                '121','304','303','230','371','270','290','320','350','460',
                '275','180','405','440','470','340','160','490','120','420',
                '140','425']
-    emailList = ["jiadw007@gmail.com","tiejiazhao@gmail.com","ohyeahfanfan@gmail.com"]
+    emailList = ["jiadw007@gmail.com","rlusher@ufl.edu","tiejiazhao@gmail.com","ohyeahfanfan@gmail.com"]
     record_time_delta = datetime.timedelta(hours = 5)
     fawnStn_time_delta = datetime.timedelta(hours = 1)
+    no_update_time_delta = datetime.timedelta(hours = 2)
     def get(self,retries = 3):
         '''response request method=get'''
         logging.info("Start the fawn monitor request")
@@ -103,7 +105,7 @@ class Monitor(webapp2.RequestHandler):
             fawnData.append(data_list)
         logging.info("Getting stnID...")
         resp.response.out.write("<br />Getting fawn stnID...<br />")
-        no_update_list = [data for data in fawnData if fawnTime - data[1] > datetime.timedelta(hours = 2)]
+        no_update_list = [data for data in fawnData if fawnTime - data[1] > self.__class__.no_update_time_delta]
         logging.info("Getting no update stnID...")
         resp.response.out.write(len(no_update_list))
         resp.response.out.write("<br />Getting no update stnID...<br />")
@@ -125,7 +127,7 @@ class Monitor(webapp2.RequestHandler):
                 . Station ID: <a href='http://fawn.ifas.ufl.edu/station/station.php?id=%s'>
                 """% data[0]
                 html = "<p>"+ html + str(count) + html_text + data[0] + \
-                "</a></p><p>No update since: " + str(data[1]) + "</p>"
+                "</a></p><p>No update since: " + str(data[1]) + "&nbsp;EST</p>"
                 ##body = body + str(count) + ". Station ID: " + data[0] +"\n    No update since:" + str(data[1]) + "\n"
                 count = count + 1
             resp.response.out.write("Building no update stn email...<br />")
@@ -133,7 +135,7 @@ class Monitor(webapp2.RequestHandler):
                              WHERE error_code = '200'\
                              ORDER BY record_time DESC")
             queryResult = q.get()
-            if queryResult is None or queryResult.error_details != message :
+            if queryResult is None or queryResult.error_time != message_time or queryResult.error_details != message:
 
                 record = database.Record(error_code = str(result.status_code),error_details = message)
                 record.record_time = fawnTime
@@ -163,6 +165,7 @@ class Monitor(webapp2.RequestHandler):
             else:
                 pass
         resp.response.out.write("End application !<br />")
+
 
 application = webapp2.WSGIApplication(
                                     [('/monitor',Monitor),
