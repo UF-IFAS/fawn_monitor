@@ -27,7 +27,7 @@ class Monitor(webapp2.RequestHandler):
                '121','304','303','230','371','270','290','320','350','460',
                '275','180','405','440','470','340','160','490','120','420',
                '140','425']
-    emailList = ["jiadw007@gmail.com","rlusher@ufl.edu","tiejiazhao@gmail.com","ohyeahfanfan@gmail.com"]
+    emailList = ["jiadw007@gmail.com","rlusher@ufl.edu","gbravn@ufl.edu","tiejiazhao@gmail.com","ohyeahfanfan@gmail.com"]
     record_time_delta = datetime.timedelta(hours = 5)
     fawnStn_time_delta = datetime.timedelta(hours = 1)
     no_update_time_delta = datetime.timedelta(hours = 2)
@@ -154,7 +154,7 @@ class Monitor(webapp2.RequestHandler):
             if mail.is_email_valid(user_address):
                 resp.response.out.write("Sending email...<br />")
                 logging.info(user_address)
-                sender_address = "jiadw007@gmail.com"
+                sender_address = "uffawn@gmail.com"
                 message = mail.EmailMessage(sender = sender_address,subject = email_subject)
                 message.to = user_address
                 message.body = " "
