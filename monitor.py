@@ -27,7 +27,7 @@ class Monitor(webapp2.RequestHandler):
                '121','304','303','230','371','270','290','320','350','460',
                '275','180','405','440','470','340','160','490','120','420',
                '140','425']
-    emailList = ["jiadw007@gmail.com","rlusher@ufl.edu","gbravn@ufl.edu","tiejiazhao@gmail.com","ohyeahfanfan@gmail.com"]
+    emailList = ["jiadw007@gmail.com","lstaudt@ufl.edu","rlusher@ufl.edu","gbravn@ufl.edu","tiejiazhao@gmail.com","ohyeahfanfan@gmail.com"]
     record_time_delta = datetime.timedelta(hours = 5)
     fawnStn_time_delta = datetime.timedelta(hours = 1)
     no_update_time_delta = datetime.timedelta(hours = 2)
@@ -135,7 +135,7 @@ class Monitor(webapp2.RequestHandler):
                              WHERE error_code = '200'\
                              ORDER BY record_time DESC")
             queryResult = q.get()
-            if queryResult is None or queryResult.error_time != message_time or queryResult.error_details != message:
+            if queryResult is None or message_time not in queryResult.error_time or message not in queryResult.error_details :
 
                 record = database.Record(error_code = str(result.status_code),error_details = message)
                 record.record_time = fawnTime
