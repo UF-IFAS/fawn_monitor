@@ -11,15 +11,16 @@
 import logging
 import datetime
 import database
-from monitor import Monitor
+from monitor import FawnMonitor
 from google.appengine.api import users
 #from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 import webapp2
-class queryLastRecord(webapp2.RequestHandler):
+class QueryLastRecord(webapp2.RequestHandler):
 
     def get(self):
+
         query = db.GqlQuery("SELECT * FROM Record \
                             ORDER BY record_time DESC")
         result = query.get()
@@ -30,9 +31,9 @@ class queryLastRecord(webapp2.RequestHandler):
             stnIdList = result.error_details.split(",")
             errorTimeList = result.error_time.split(",")
             for id in stnIdList:
-                self.response.out.write("""NO UPDATE STATION %s @ %s""" %(id, str(errorTimeList[stnIdList.index(id)])))
+                self.response.out.write("""NO UPDATE STATION %s @ %s<br />""" %(id, str(errorTimeList[stnIdList.index(id)])))
 
-class queryRecord(webapp2.RequestHandler):
+class QueryRecord(webapp2.RequestHandler):
 
     def get(self):
 
@@ -47,7 +48,7 @@ class queryRecord(webapp2.RequestHandler):
             <link rel="stylesheet" href="/resources/demos/style.css">
             </head>
             <body>
-              <form action="/queryRecord" method="get">
+              <form action="/fawn/queryRecord" method="get">
                 <label for="from">From</label>
                 <input type="text" id="from" name="from">
                 <label for="to">to</label>
@@ -78,22 +79,33 @@ class queryRecord(webapp2.RequestHandler):
                                         </tr>"""%(str(result.error_code),str(result.error_details),str(result.error_time),str(result.record_time)))
         self.response.out.write("""</table></body></html>""")
 
-class changeTimeDelta(webapp2.RequestHandler):
+class Option(webapp2.RequestHandler):
+
     def get(self):
-        self.response.out.write("""<html>
-                                    <head>
-                                    <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
-                                    <head/>
-                                    <body>
+        path = self.request.path
+        self.response.out.write("""
+        <html>
+            <head>
+            </head>
+            <body>
+            <h2>Choose your action</h2>
+            1.<a href="%s/monitor">check monitor</a>
+            2.<a href="%s/queryRecord">query record</a>
+            3.<a href="%s/queryLastRecord">query last record</a>
+            </body>
+            </html>
 
 
-        """)
-        self.response.out.write("""</body></html>""")
+
+        """ % (path,path,path))
+
+
 
 application = webapp2.WSGIApplication(
-                                    [('/queryLastRecord',queryLastRecord),
-                                     ('/queryRecord',queryRecord),
-                                     ('/changeTimeDelta',changeTimeDelta)],
+                                    [('/fawn/queryLastRecord',QueryLastRecord),
+                                     ('/fawn/queryRecord',QueryRecord),
+                                     ('/fawn', Option),
+                                     ('/fdacs', Option)],
                                     debug = True)
 
 

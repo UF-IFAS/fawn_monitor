@@ -1,0 +1,10 @@
+#!wing
+#!version=4.0
+##################################################################
+# Wing IDE project file                                          #
+##################################################################
+[project attributes]
+proj.file-list = [loc('database.py'),
+                  loc('monitor.py'),
+                  loc('util.py')]
+proj.file-type = 'shared'
