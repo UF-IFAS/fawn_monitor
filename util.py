@@ -17,7 +17,7 @@ from google.appengine.api import users
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 import webapp2
-class QueryLastRecord(webapp2.RequestHandler):
+class QueryLastFawnRecord(webapp2.RequestHandler):
 
     def get(self):
 
@@ -33,7 +33,7 @@ class QueryLastRecord(webapp2.RequestHandler):
             for id in stnIdList:
                 self.response.out.write("""NO UPDATE STATION %s @ %s<br />""" %(id, str(errorTimeList[stnIdList.index(id)])))
 
-class QueryRecord(webapp2.RequestHandler):
+class QueryFawnRecord(webapp2.RequestHandler):
 
     def get(self):
 
@@ -79,6 +79,17 @@ class QueryRecord(webapp2.RequestHandler):
                                         </tr>"""%(str(result.error_code),str(result.error_details),str(result.error_time),str(result.record_time)))
         self.response.out.write("""</table></body></html>""")
 
+class QueryLastFdacsRecord(webapp2.RequestHandler):
+
+    def get(self):
+        pass
+
+
+class QueryFdacsRecord(webapp2.RequestHandler):
+
+    def get(self):
+        pass
+
 class Option(webapp2.RequestHandler):
 
     def get(self):
@@ -102,8 +113,10 @@ class Option(webapp2.RequestHandler):
 
 
 application = webapp2.WSGIApplication(
-                                    [('/fawn/queryLastRecord',QueryLastRecord),
-                                     ('/fawn/queryRecord',QueryRecord),
+                                    [('/fawn/queryLastRecord',QueryLastFawnRecord),
+                                     ('/fawn/queryRecord',QueryFawnRecord),
+                                     ('/fdacs/queryLastRecord',QueryLastFdacsRecord),
+                                     ('/fdacs/queryRecord',QueryFdacsRecord),
                                      ('/fawn', Option),
                                      ('/fdacs', Option)],
                                     debug = True)

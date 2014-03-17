@@ -21,11 +21,20 @@ handlers:
 - url: /fawn/monitor
   script: monitor.application
   
+- url: /fdacs/monitor
+  script: monitor.application
+  
 - url: /fawn/queryLastRecord
   script: util.application
 
 - url: /fawn/queryRecord
   script: util.application
+  
+- url: /fdacs/queryLastRecord
+  script: util.application
+
+- url: /fdacs/queryRecord
+  script: util.application  
   
 - url: /js
   static_dir: js

@@ -1,8 +1,8 @@
 #-------------------------------------------------------------------------------
 # Name:        monitor.py
 # Purpose:     1. check availbility http://fawn.ifas.ufl.edu/controller.php/latestmapjson/
-#              2. check data timeliness for 42 fawn stations fawn-monitor.appspot.com/
-#                   fawn-monitor.appspot.com/monitor
+#              2. check data timeliness for 42 fawn stations fawn-monitor.appspot.com
+#              3. check availbility  http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json
 # Author:      Dawei Jia
 #
 # Created:     12/09/2013
@@ -14,11 +14,12 @@ import json
 import datetime
 import database
 from google.appengine.api import users
-from google.appengine.ext import webapp
+#from google.appengine.ext import webapp
 from google.appengine.api import urlfetch
 from google.appengine.api import mail
 from google.appengine.ext import db
 import webapp2
+
 class FawnMonitor(webapp2.RequestHandler):
     '''monitor data availability and timeliness '''
     url = "http://fawn.ifas.ufl.edu/controller.php/latestmapjson/"
@@ -79,7 +80,7 @@ class FawnMonitor(webapp2.RequestHandler):
 
     def getFawnInfo(self,resp,result):
 
-        '''pasre fawn station information'''
+        '''parse fawn station information'''
         logging.info("parsing json content")
         resp.response.out.write("Parsing json content...<br />")
         #parse json content
@@ -88,8 +89,9 @@ class FawnMonitor(webapp2.RequestHandler):
         resp.response.out.write("Getting fawn time...<br />")
         #fawn time
         fawnTime = datetime.datetime.strptime(decoded['fawnTime'][:-4],'%A %B %d, %Y %I:%M %p')
+        season = str(decoded['fawnTime'][-3:])
         fawnData=[]
-        resp.response.out.write("fawnTime: " + str(fawnTime) + "   EST")
+        resp.response.out.write("fawnTime: " + str(fawnTime) + "  " + season)
         for data in decoded['stnsWxData']:
             resp.response.out.write("<br />")
             fawnStn_time = datetime.datetime.strptime(data['dateTimes'][:-4],'%m/%d/%Y %I:%M %p')
@@ -98,10 +100,10 @@ class FawnMonitor(webapp2.RequestHandler):
             if data['dateTimes'][-3:] =='CST' or data['dateTimes'][-3:] =='CDT':
                 data_list.append(fawnStn_time + self.__class__.fawnStn_time_delta)
                 resp.response.out.write(str(data['stnID']) +": "+ \
-                str(fawnStn_time + self.__class__.fawnStn_time_delta) + "  EST")
+                str(fawnStn_time + self.__class__.fawnStn_time_delta) + "  " + season)
             else:
                 data_list.append(fawnStn_time)
-                resp.response.out.write(str(data['stnID']) +": "+str(fawnStn_time) + "  EST")
+                resp.response.out.write(str(data['stnID']) +": "+str(fawnStn_time) + "  " + season)
             fawnData.append(data_list)
         logging.info("Getting stnID...")
         resp.response.out.write("<br />Getting fawn stnID...<br />")
@@ -127,7 +129,7 @@ class FawnMonitor(webapp2.RequestHandler):
                 . Station ID: <a href='http://fawn.ifas.ufl.edu/station/station.php?id=%s'>
                 """% data[0]
                 html = "<p>"+ html + str(count) + html_text + data[0] + \
-                "</a></p><p>No update since: " + str(data[1]) + "&nbsp;EST</p>"
+                "</a></p><p>No update since: " + str(data[1]) + "&nbsp;" + season + "</p>"
                 ##body = body + str(count) + ". Station ID: " + data[0] +"\n    No update since:" + str(data[1]) + "\n"
                 count = count + 1
             resp.response.out.write("Building no update stn email...<br />")
@@ -166,8 +168,75 @@ class FawnMonitor(webapp2.RequestHandler):
                 pass
         resp.response.out.write("End application !<br />")
 
+class FdacsMonitor(webapp2.RequestHandler):
+    '''Fdacs Monitor'''
+    emailList =["jiadw007@gmail.com", "tiejiazhao@gmail.com"]
+    fdacs_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json"
+    vendor_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/station/format/json"
+    record_time_delta = datetime.timedelta(hours = 5)
+    def get(self,retries = 3):
+        '''response request method = get'''
+        logging.info("Start the fdacs monitor request")
+        self.response.out.write("Start fawn monitor<br />")
+
+        #fetch content from url
+        result = urlfetch.fetch(self.__class__.fdacs_url)
+        logging.info("Getting the response status code...")
+        self.response.out.write("<b>1. Check availbility</b><br />")
+
+        #check response status code
+        if result.status_code == 200:
+            logging.info("Status code is ok, get fdacs station info")
+            logging.info("Check timeliness")
+            self.response.out.write("<b>Success !</b><br /> Status code: "+ \
+                                    str(result.status_code)+"<br />")
+            self.response.out.write("<b>2. Check timeliness</b><br />")
+            self.getFdacsInfo(self,result)
+        else:
+            #retry request
+            if retries > 0:
+                logging.info("Fail ! Retry %d times", retries - 1)
+                information = """
+                <b>Fail !</b><br /> Retry %d times<br />
+                """ % (retries - 1)
+                self.response.out.write(information)
+                return self.get(retries - 1)
+            else:
+                loggin.info("After 3 times no response, return status code")
+                errorInformation = """
+                <b>After 3 times no response, Error %s </b><br />
+                """ % (result.status_code)
+                self.response.out.write(errorInformation)
+                self.response.out.write("Building error email...<br />")
+                logging.info("Build error email")
+                subject = "FDACS ALERT NO RESPONSE"
+                html = """<p>Error %s happens</p>""" % (result.status_code)
+                record = database.FdacsRecord(error_code = str(result.status_code), error_details = str(result.status_code))
+                record.record_time = datetime.datetime.now() - self.__class__.record_time_delta
+                record.error_time = record.record_time
+                record.put()
+                self.emialErrorInfo(self, subject, html)
+
+    def getFdacsInfo(self, resp, result):
+
+        '''parse fawn station information'''
+        logging.info("parsing json content")
+        resp.response.out.write("Parsing json content...<br />")
+        # parse json content
+        decoded = json.loads(result.content)
+        logging.info("Getting fresh status")
+        resp.response.out.write("Getting fresh status...<br />")
+        #fresh status
+        for data in decoded:
+
+
+
+
+class MonitorHelper():
+    ''''MonitorHelper'''
+
 
 application = webapp2.WSGIApplication(
-                                    [('/fawn/monitor',FawnMonitor)
-                                     ],
+                                    [('/fawn/monitor',FawnMonitor),
+                                     ('/fdacs/monitor',FdacsMonitor)],
                                     debug = True)
