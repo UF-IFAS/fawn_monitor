@@ -121,17 +121,23 @@ class FawnMonitor(webapp2.RequestHandler):
             subject = "FAWN ALERT NO UPDATE @ " + str(fawnTime)
             message = ",".join([data[0] for data in no_update_list])
             message_time = ",".join(str(data[1]) for data in no_update_list)
-            html = ""
-            ##body = ""
-            count = 1;
+            html = """<h3>Alert Info Table</h3>
+                      <table border="1" cellspacing="0">
+                        <tr>
+                            <th>Station_id</th>
+                            <th>No update since</th>
+                        </tr>
+                      """
             for data in no_update_list:
-                html_text = """
-                . Station ID: <a href='http://fawn.ifas.ufl.edu/station/station.php?id=%s'>
-                """% data[0]
-                html = "<p>"+ html + str(count) + html_text + data[0] + \
-                "</a></p><p>No update since: " + str(data[1]) + "&nbsp;" + season + "</p>"
-                ##body = body + str(count) + ". Station ID: " + data[0] +"\n    No update since:" + str(data[1]) + "\n"
-                count = count + 1
+                station_id = """<a href='http://fawn.ifas.ufl.edu/station/station.php?id=%s'>""" % data[0]
+                html_text ="""
+                            <tr>
+                                <td>%s</td>
+                                <td>%s</td>
+                            </tr>
+                """ % (station_id, str(data[1]) + "&nbsp;" + season)
+                html = html + html_text
+            html = html + "</table>"
             resp.response.out.write("Building no update stn email...<br />")
             q = db.GqlQuery("SELECT * FROM Record \
                              WHERE error_code = '200'\
@@ -170,10 +176,11 @@ class FawnMonitor(webapp2.RequestHandler):
 
 class FdacsMonitor(webapp2.RequestHandler):
     '''Fdacs Monitor'''
-    emailList =["jiadw007@gmail.com", "tiejiazhao@gmail.com"]
+    default_emailList =["jiadw007@gmail.com", "uffawn@gmail.com","tiejiazhao@gmail.com"]
     fdacs_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json"
     vendor_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/station/format/json"
     record_time_delta = datetime.timedelta(hours = 5)
+    emailList=[]
     def get(self,retries = 3):
         '''response request method = get'''
         logging.info("Start the fdacs monitor request")
@@ -226,14 +233,88 @@ class FdacsMonitor(webapp2.RequestHandler):
         decoded = json.loads(result.content)
         logging.info("Getting fresh status")
         resp.response.out.write("Getting fresh status...<br />")
+        total_stns_num = len(decoded)
+        resp.response.out.write("There are total %d stations.<br />" % total_stns_num)
         #fresh status
-        for data in decoded:
+        fresh_false_list = [data for data in decoded if data['fresh'] == False]
+        false_stns_num = len(fresh_false_list)
+        resp.response.out.write("There are %d false fresh status stations.<br />" % false_stns_num)
+        if false_stns_num != 0:
 
+            alert_time = str(datetime.datetime.now()- datetime.timedelta(hours = 4))
+            subject = "FDACS %d ALERT NO UPDATE @ %s" %(false_stns_num, alert_time[:-7])
+            resp.response.out.write(subject + "<br />")
+            if false_stns_num >= total_stns_num / 2:
+                self.__class__.emailList = self.__class__.default_emailList[:]
+                self.__class__.emailList.append("tiejiazhao@gmail.com")
+            else:
+                self.__class__.emailList = self.__class__.default_emailList[:]
 
+            vendor_lists= json.loads(urlfetch.fetch(self.__class__.vendor_url).content)
+            vendor_dict = {}
+            for vendor in vendor_lists:
+                vendor_dict[vendor['id']] = vendor
+                ##resp.response.out.write(vendor_dict[vendor['id']])
+            no_update_list = []
+            for data in fresh_false_list:
+                data_list = []
+                data_list.append(data["station_id"])
+                ##resp.response.out.write(vendor_dict[data["station_id"]]['vendor_name'])
+                data_list.append(vendor_dict[data["station_id"]]['vendor_station_id'])
+                data_list.append(vendor_dict[data["station_id"]]['vendor_name'])
+                data_list.append(data["standard_date_time"])
+                logging.info(data_list)
+                ##resp.response.out.write(str(data_list) + "<br />")
+                no_update_list.append(data_list)
 
+            html = """<h3>Alert Info Table</h3>
+                      <table border="1" cellspacing="0">
+                        <tr>
+                            <th>Station_id</th>
+                            <th>Vendor_id</th>
+                            <th>Vendor_name</th>
+                            <th>No update since</th>
+                        </tr>
+                      """
+            for data in no_update_list:
+                htmlText = """
+                            <tr>
+                                <td>%s</td>
+                                <td>%s</td>
+                                <td>%s</td>
+                                <td>%s</td>
+                            </tr>
 
-class MonitorHelper():
-    ''''MonitorHelper'''
+                """ % (data[0],data[1],data[2],data[3])
+                html = html + htmlText
+            html = html + "</table>"
+            resp.response.out.write(html)
+            self.emailErrorInfo(resp,subject,html)
+
+        else:
+            #all stations are good
+            logging.info("No alert for fdacs stns")
+            logging.info("End application")
+            resp.response.out.write("No alert for fdacs stns !<br />")
+            resp.response.out.write("End application ! <br />")
+
+    def emailErrorInfo(self,resp,email_subject,email_html):
+        '''send error email'''
+        for user_address in self.__class__.emailList:
+            if mail.is_email_valid(user_address):
+                resp.response.out.write("Sending email...<br />")
+                logging.info(user_address)
+                sender_address = "uffawn@gmail.com"
+                message = mail.EmailMessage(sender = sender_address,subject = email_subject)
+                message.to = user_address
+                message.body = " "
+                message.html = email_html
+                message.send()
+                resp.response.out.write("Sending out... <br />")
+
+            else:
+                pass
+        resp.response.out.write("End application !<br />")
 
 
 application = webapp2.WSGIApplication(
