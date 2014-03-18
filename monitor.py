@@ -76,7 +76,7 @@ class FawnMonitor(webapp2.RequestHandler):
                 record.record_time = datetime.datetime.now() - self.__class__.record_time_delta
                 record.error_time = record.record_time
                 record.put()
-                self.emailErrorInfo(self,subject,html)
+                MonitorHelper.emailErrorInfo(self.__class__.emailList,resp,subject,html)
 
     def getFawnInfo(self,resp,result):
 
@@ -149,30 +149,14 @@ class FawnMonitor(webapp2.RequestHandler):
                 record.record_time = fawnTime
                 record.error_time = message_time
                 record.put()
-                self.emailErrorInfo(resp,subject,html)
+                MonitorHelper.emailErrorInfo(self.__class__.emailList,resp,subject,html)
         else:
             #all stations are good
             logging.info("No missing stnID")
             logging.info("End application")
             resp.response.out.write("No missing stnID<br />")
             resp.response.out.write("End application ! <br />")
-    def emailErrorInfo(self,resp,email_subject,email_html):
-        '''send error email'''
-        for user_address in self.__class__.emailList:
-            if mail.is_email_valid(user_address):
-                resp.response.out.write("Sending email...<br />")
-                logging.info(user_address)
-                sender_address = "uffawn@gmail.com"
-                message = mail.EmailMessage(sender = sender_address,subject = email_subject)
-                message.to = user_address
-                message.body = " "
-                message.html = email_html
-                message.send()
-                resp.response.out.write("Sending out... <br />")
 
-            else:
-                pass
-        resp.response.out.write("End application !<br />")
 
 class FdacsMonitor(webapp2.RequestHandler):
     '''Fdacs Monitor'''
@@ -184,7 +168,7 @@ class FdacsMonitor(webapp2.RequestHandler):
     def get(self,retries = 3):
         '''response request method = get'''
         logging.info("Start the fdacs monitor request")
-        self.response.out.write("Start fawn monitor<br />")
+        self.response.out.write("Start fdacs monitor<br />")
 
         #fetch content from url
         result = urlfetch.fetch(self.__class__.fdacs_url)
@@ -222,7 +206,7 @@ class FdacsMonitor(webapp2.RequestHandler):
                 record.record_time = datetime.datetime.now() - self.__class__.record_time_delta
                 record.error_time = record.record_time
                 record.put()
-                self.emialErrorInfo(self, subject, html)
+                MonitorHelper.emailErrorInfo(self.__class__.emailList,resp,subject,html)
 
     def getFdacsInfo(self, resp, result):
 
@@ -300,7 +284,8 @@ class FdacsMonitor(webapp2.RequestHandler):
                 record.record_time = alert_time
                 record.error_time = message_time
                 record.put()
-                self.emailErrorInfo(resp,subject,html)
+                ##self.emailErrorInfo(resp,subject,html)
+                MonitorHelper.emailErrorInfo(self.__class__.emailList,resp,subject,html)
 
         else:
             #all stations are good
@@ -309,9 +294,16 @@ class FdacsMonitor(webapp2.RequestHandler):
             resp.response.out.write("No alert for fdacs stns !<br />")
             resp.response.out.write("End application ! <br />")
 
-    def emailErrorInfo(self,resp,email_subject,email_html):
+
+class MonitorHelper(webapp2.RequestHandler):
+
+    @classmethod
+    def
+
+    @classmethod
+    def emailErrorInfo(self,email_list, resp, email_subject, email_html):
         '''send error email'''
-        for user_address in self.__class__.emailList:
+        for user_address in email_list:
             if mail.is_email_valid(user_address):
                 resp.response.out.write("Sending email...<br />")
                 logging.info(user_address)
@@ -326,6 +318,7 @@ class FdacsMonitor(webapp2.RequestHandler):
             else:
                 pass
         resp.response.out.write("End application !<br />")
+
 
 
 application = webapp2.WSGIApplication(
