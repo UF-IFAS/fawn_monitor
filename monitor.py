@@ -29,7 +29,7 @@ class FawnMonitor(webapp2.RequestHandler):
                '275','180','405','440','470','340','160','490','120','420',
                '140','425']
     emailList = ["jiadw007@gmail.com","lstaudt@ufl.edu","rlusher@ufl.edu","gbraun@ufl.edu","tiejiazhao@gmail.com","ohyeahfanfan@gmail.com"]
-    record_time_delta = datetime.timedelta(hours = 5)
+    record_time_delta = datetime.timedelta(hours = 4)
     fawnStn_time_delta = datetime.timedelta(hours = 1)
     no_update_time_delta = datetime.timedelta(hours = 2)
     def get(self,retries = 3):
@@ -120,9 +120,9 @@ class FawnMonitor(webapp2.RequestHandler):
             resp.response.out.write(missingInformation)
             subject = "FAWN ALERT NO UPDATE @ " + str(fawnTime)
             message = ",".join([data[0] for data in no_update_list])
-            message_time = ",".join(str(data[1]) for data in no_update_list)
+            message_time = ",".join([str(data[1]) for data in no_update_list])
             html = """<h3>Alert Info Table</h3>
-                      <table border="1" cellspacing="0">
+                      <table border="1" cellspacing="0" cellpadding="5">
                         <tr>
                             <th>Station_id</th>
                             <th>No update since</th>
@@ -176,10 +176,10 @@ class FawnMonitor(webapp2.RequestHandler):
 
 class FdacsMonitor(webapp2.RequestHandler):
     '''Fdacs Monitor'''
-    default_emailList =["jiadw007@gmail.com", "uffawn@gmail.com","tiejiazhao@gmail.com"]
+    default_emailList =["jiadw007@gmail.com", "uffawn@gmail.com"]
     fdacs_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json"
     vendor_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/station/format/json"
-    record_time_delta = datetime.timedelta(hours = 5)
+    record_time_delta = datetime.timedelta(hours = 4)
     emailList=[]
     def get(self,retries = 3):
         '''response request method = get'''
@@ -241,8 +241,8 @@ class FdacsMonitor(webapp2.RequestHandler):
         resp.response.out.write("There are %d false fresh status stations.<br />" % false_stns_num)
         if false_stns_num != 0:
 
-            alert_time = str(datetime.datetime.now()- datetime.timedelta(hours = 4))
-            subject = "FDACS %d ALERT NO UPDATE @ %s" %(false_stns_num, alert_time[:-7])
+            alert_time = datetime.datetime.now()- self.__class__.record_time_delta
+            subject = "FDACS %d ALERT NO UPDATE @ %s" %(false_stns_num, str(alert_time)[:-7])
             resp.response.out.write(subject + "<br />")
             if false_stns_num >= total_stns_num / 2:
                 self.__class__.emailList = self.__class__.default_emailList[:]
@@ -266,9 +266,10 @@ class FdacsMonitor(webapp2.RequestHandler):
                 logging.info(data_list)
                 ##resp.response.out.write(str(data_list) + "<br />")
                 no_update_list.append(data_list)
-
+            message = ",".join([data[0] for data in no_update_list])
+            message_time = ",".join([data[1] for data in no_update_list])
             html = """<h3>Alert Info Table</h3>
-                      <table border="1" cellspacing="0">
+                      <table border="1" cellspacing="0" cellpadding="5">
                         <tr>
                             <th>Station_id</th>
                             <th>Vendor_id</th>
@@ -289,7 +290,17 @@ class FdacsMonitor(webapp2.RequestHandler):
                 html = html + htmlText
             html = html + "</table>"
             resp.response.out.write(html)
-            self.emailErrorInfo(resp,subject,html)
+            q = db.GqlQuery("SELECT * FROM FdacsRecord \
+                             WHERE error_code = '200'\
+                             ORDER BY record_time DESC")
+            queryResult = q.get()
+            if queryResult is None or message_time not in queryResult.error_time or message not in queryResult.error_details :
+
+                record = database.FdacsRecord(error_code = str(result.status_code),error_details = message)
+                record.record_time = alert_time
+                record.error_time = message_time
+                record.put()
+                self.emailErrorInfo(resp,subject,html)
 
         else:
             #all stations are good

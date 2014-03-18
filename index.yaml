@@ -10,6 +10,12 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
+- kind: FdacsRecord
+  properties:
+  - name: error_code
+  - name: record_time
+    direction: desc
+
 - kind: Record
   properties:
   - name: error_code
