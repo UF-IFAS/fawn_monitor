@@ -38,9 +38,9 @@ class QueryFawnRecord(webapp2.RequestHandler):
             startTime = self.request.get("from").split('/')
             endTime = self.request.get("to").split('/')
             query = db.GqlQuery("""SELECT * FROM Record
-                                WHERE record_time > DATE(%s,%s,%s) and record_time < DATE(%s,%s,%s)
+                                WHERE record_time >= DATE(%s,%s,%s) and record_time <= DATE(%s,%s,%s)
                                 ORDER BY record_time DESC
-                                """% (startTime[2],startTime[0],startTime[1],endTime[2],endTime[0],endTime[1]))
+                                """% (startTime[2],startTime[0],startTime[1],endTime[2],endTime[0],str(eval(endTime[1])+1)))
             results = query.fetch(100)
             showRecordHelper.showRecord(self,results,startTime, endTime)
         self.response.out.write("""</table></body></html>""")
@@ -63,9 +63,9 @@ class QueryFdacsRecord(webapp2.RequestHandler):
             startTime = self.request.get("from").split('/')
             endTime = self.request.get("to").split('/')
             query = db.GqlQuery("""SELECT * FROM FdacsRecord
-                                WHERE record_time > DATE(%s,%s,%s) and record_time < DATE(%s,%s,%s)
+                                WHERE record_time >= DATE(%s,%s,%s) and record_time <= DATE(%s,%s,%s)
                                 ORDER BY record_time DESC
-                                """% (startTime[2],startTime[0],startTime[1],endTime[2],endTime[0],endTime[1]))
+                                """% (startTime[2],startTime[0],startTime[1],endTime[2],endTime[0],str(eval(endTime[1])+1)))
             results = query.fetch(10000)
             showRecordHelper.showRecord(self,results,startTime,endTime)
 
@@ -77,6 +77,7 @@ class showRecordHelper():
 
     @classmethod
     def queryHtml(self,resp):
+        '''build query html'''
         return """
           <html>
           <head>
@@ -98,6 +99,7 @@ class showRecordHelper():
            """ % self.dicts[resp.__class__.__name__]
     @classmethod
     def showLastRecord(self,resp,result):
+        '''show last record '''
         resp.response.out.write("<b>----The last error message----<b><br />")
         if result is None:
             resp.response.out.write("NO RECORD IN THE DATABASE !")
@@ -114,11 +116,12 @@ class showRecordHelper():
 
     @classmethod
     def showRecord(self,resp,results,start,end):
+        '''show record in a certain date range'''
         resp.response.out.write("----RESULT FROM %s TO %s----<br />" % ("/".join(start), "/".join(end)))
         if len(results) == 0:
             resp.response.out.write("NO RECORD IN THE DATABASE !" )
             return
-        resp.response.out.write("""<table border="1" cellpadding="5"><tr>
+        resp.response.out.write("""<table border="1" cellspacing="0" cellpadding="5"><tr>
                                         <th>error_code</th>
                                         <th>error_details</th>
                                         <th>error_time</th>
