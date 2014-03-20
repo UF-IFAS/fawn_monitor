@@ -18,5 +18,5 @@ class FdacsRecord(db.Model):
 
 def main():
     print "new record!"
-if __name__ == "main":
+if __name__ == "__main__":
     main()

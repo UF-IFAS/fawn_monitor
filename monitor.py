@@ -9,10 +9,13 @@
 # Copyright:   (c) DaweiJia 2013
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
+
 import logging
 import json
 import datetime
 import database
+
+from monitor_helper import MonitorHelper
 from google.appengine.api import users
 #from google.appengine.ext import webapp
 from google.appengine.api import urlfetch
@@ -47,6 +50,7 @@ class FawnMonitor(webapp2.RequestHandler):
         season = str(decoded['fawnTime'][-3:])
         fawnData=[]
         self.response.out.write("fawnTime: " + str(alert_time) + "  " + season)
+        #build fawn station time list
         for data in decoded['stnsWxData']:
             self.response.out.write("<br />")
             fawnStn_time = datetime.datetime.strptime(data['dateTimes'][:-4],'%m/%d/%Y %I:%M %p')
@@ -62,6 +66,7 @@ class FawnMonitor(webapp2.RequestHandler):
             fawnData.append(data_list)
         logging.info("Getting stnID...")
         self.response.out.write("<br />Getting fawn stnID...<br />")
+        #build no update list
         no_update_list = [data for data in fawnData if alert_time - data[1] > self.__class__.no_update_time_delta]
         logging.info("Getting no update stnID...")
         self.response.out.write(len(no_update_list))
@@ -75,8 +80,6 @@ class FawnMonitor(webapp2.RequestHandler):
             """ % len(no_update_list)
             self.response.out.write(missingInformation)
             subject = "FAWN ALERT NO UPDATE @ " + str(alert_time)
-            message = ",".join([data[0] for data in no_update_list])
-            message_time = ",".join([str(data[1]) for data in no_update_list])
             #build email content
             html = MonitorHelper.buildEmailContent(self,no_update_list,season)
             self.response.out.write(html)
@@ -85,12 +88,13 @@ class FawnMonitor(webapp2.RequestHandler):
                              WHERE error_code = '200'\
                              ORDER BY record_time DESC")
             queryResult = q.get()
+            message = ",".join([data[0] for data in no_update_list])
+            message_time = ",".join([str(data[1]) for data in no_update_list])
+            self.response.out.write("Check last record in the database<br/>")
             if queryResult is None or message_time not in queryResult.error_time or message not in queryResult.error_details :
 
                 record = database.Record(error_code = str(result.status_code),error_details = message)
-                record.record_time = alert_time
-                record.error_time = message_time
-                record.put()
+                MonitorHelper.updateRecord(self, record, alert_time,message_time)
                 MonitorHelper.emailErrorInfo(self.__class__.emailList,self,subject,html)
         else:
             MonitorHelper.allGoodInfo(self)
@@ -121,9 +125,8 @@ class FdacsMonitor(webapp2.RequestHandler):
         fresh_false_list = [data for data in decoded if data['fresh'] == False]
         false_stns_num = len(fresh_false_list)
         self.response.out.write("There are %d false fresh status stations.<br />" % false_stns_num)
-        #if there are false status stations
+        #report no update stations
         if false_stns_num != 0:
-
             alert_time = datetime.datetime.now() - self.__class__.record_time_delta
             subject = "FDACS %d ALERT NO UPDATE @ %s" %(false_stns_num, str(alert_time)[:-7])
             self.response.out.write(subject + "<br />")
@@ -139,19 +142,19 @@ class FdacsMonitor(webapp2.RequestHandler):
             for vendor in vendor_lists:
                 vendor_dict[vendor['id']] = vendor
                 ##resp.response.out.write(vendor_dict[vendor['id']])
+            #build no update list
             no_update_list = []
             for data in fresh_false_list:
                 data_list = []
                 data_list.append(data["station_id"])
                 ##resp.response.out.write(vendor_dict[data["station_id"]]['vendor_name'])
+                data_list.append(data["standard_date_time"])
                 data_list.append(vendor_dict[data["station_id"]]['vendor_station_id'])
                 data_list.append(vendor_dict[data["station_id"]]['vendor_name'])
-                data_list.append(data["standard_date_time"])
                 logging.info(data_list)
                 ##resp.response.out.write(str(data_list) + "<br />")
                 no_update_list.append(data_list)
-            message = ",".join([data[0] for data in no_update_list])
-            message_time = ",".join([data[1] for data in no_update_list])
+
             #build email content
             html = MonitorHelper.buildEmailContent(self,no_update_list)
             self.response.out.write(html)
@@ -160,153 +163,18 @@ class FdacsMonitor(webapp2.RequestHandler):
                              WHERE error_code = '200'\
                              ORDER BY record_time DESC")
             queryResult = q.get()
+            message = ",".join([data[0] for data in no_update_list])
+            message_time = ",".join([data[1] for data in no_update_list])
+            self.response.out.write("Check last record in the database<br/>")
             if queryResult is None or message_time not in queryResult.error_time or message not in queryResult.error_details :
 
                 record = database.FdacsRecord(error_code = str(result.status_code),error_details = message)
-                record.record_time = alert_time
-                record.error_time = message_time
-                record.put()
-                ##self.emailErrorInfo(resp,subject,html)
+                MonitorHelper.updateRecord(self, record, alert_time,message_time)
                 MonitorHelper.emailErrorInfo(self.__class__.emailList,self,subject,html)
 
         else:
             #all stations are good
             MonitorHelper.allGoodInfo(self)
-
-
-class MonitorHelper(webapp2.RequestHandler):
-    '''Monitor Helper'''
-
-    @classmethod
-    def emailErrorInfo(self,email_list, resp, email_subject, email_html):
-        '''send error email'''
-        for user_address in email_list:
-            if mail.is_email_valid(user_address):
-                resp.response.out.write("Sending email...<br />")
-                logging.info(user_address)
-                sender_address = "uffawn@gmail.com"
-                message = mail.EmailMessage(sender = sender_address,subject = email_subject)
-                message.to = user_address
-                message.body = " "
-                message.html = email_html
-                message.send()
-                resp.response.out.write("Sending out... <br />")
-
-            else:
-                pass
-        resp.response.out.write("End application !<br />")
-
-    @classmethod
-    def allGoodInfo(self,resp):
-        '''Action for all good stations info'''
-        logging.info("No alert for %s stns" % str(resp.__class__.__name__))
-        logging.info("End application")
-        resp.response.out.write("No alert for %s stns !<br />" % str(resp.__class__.__name__))
-        resp.response.out.write("End application ! <br />")
-
-
-    @classmethod
-    def checkStatusCode(self,resp):
-
-        '''check status code'''
-        logging.info("Start the %s monitor request" % resp.__class__.__name__)
-        resp.response.out.write("Start %s monitor<br />" % resp.__class__.__name__)
-
-        #fetch content from url
-        result = urlfetch.fetch(resp.__class__.url)
-        logging.info("Getting the response status code...")
-        resp.response.out.write("<b>1. Check availbility</b><br />")
-
-        #check response status code
-        if result.status_code == 200:
-            logging.info("Status code is ok, get fdacs station info")
-            logging.info("Check timeliness")
-            resp.response.out.write("<b>Success !</b><br /> Status code: "+ \
-                                    str(result.status_code)+"<br />")
-            resp.response.out.write("<b>2. Check timeliness</b><br />")
-            resp.getInfo(result)
-        else:
-            #retry request
-            if retries > 0:
-                logging.info("Fail ! Retry %d times", retries - 1)
-                information = """
-                <b>Fail !</b><br /> Retry %d times<br />
-                """ % (retries - 1)
-                resp.response.out.write(information)
-                return resp.get(retries - 1)
-            else:
-                logging.info("After 3 times no response, return status code")
-                errorInformation = """
-                <b>After 3 times no response, Error %s </b><br />
-                """ % (result.status_code)
-                resp.response.out.write(errorInformation)
-                resp.response.out.write("Building error email...<br />")
-                logging.info("Build error email")
-                subject = "FDACS ALERT NO RESPONSE"
-                html = """<p>Error %s happens</p>""" % (result.status_code)
-                record
-                if resp.__class__.__name__ == 'FdacsMonitor':
-                    record = database.FdacsRecord(error_code = str(result.status_code), error_details = str(result.status_code))
-                else:
-                    record = database.Record(error_code = str(result.status_code), error_details = str(result.status_code))
-                record.record_time = datetime.datetime.now() - self.__class__.record_time_delta
-                record.error_time = record.record_time
-                record.put()
-                MonitorHelper.emailErrorInfo(self.__class__.emailList,self,subject,html)
-    @classmethod
-    def parseJson(self,resp,result):
-        '''parse Json content helper'''
-        logging.info("parsing json content")
-        resp.response.out.write("Parsing json content...<br />")
-        # parse json content
-        decoded = json.loads(result.content)
-        return decoded
-
-    @classmethod
-    def buildEmailContent(self,resp,no_update_list,addInfo = ""):
-        '''bulid Email Content'''
-        resp.response.out.write("building email content!")
-        html =""
-        if resp.__class__.__name__ == 'FdacsMonitor':
-            html = html + """<h3>Alert Info Table</h3>
-                      <table border="1" cellspacing="0" cellpadding="5">
-                        <tr>
-                            <th>Station_id</th>
-                            <th>Vendor_id</th>
-                            <th>Vendor_name</th>
-                            <th>No update since</th>
-                        </tr>
-                      """
-            for data in no_update_list:
-                html_text = """
-                            <tr>
-                                <td>%s</td>
-                                <td>%s</td>
-                                <td>%s</td>
-                                <td>%s</td>
-                            </tr>
-
-                """ % (data[0],data[1],data[2],data[3])
-                html = html + html_text
-        else:
-            html = html + """<h3>Alert Info Table</h3>
-                      <table border="1" cellspacing="0" cellpadding="5">
-                        <tr>
-                            <th>Station_id</th>
-                            <th>No update since</th>
-                        </tr>
-                      """
-            for data in no_update_list:
-                station_id = """<a href='http://fawn.ifas.ufl.edu/station/station.php?id=%s'>%s<a/>""" % (data[0],data[0])
-                html_text ="""
-                            <tr>
-                                <td>%s</td>
-                                <td>%s</td>
-                            </tr>
-                """ % (station_id, str(data[1]) + "&nbsp;" + addInfo)
-                html = html + html_text
-        html = html + "</table>"
-        return html
 
 application = webapp2.WSGIApplication(
                                     [('/fawn/monitor',FawnMonitor),
