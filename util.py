@@ -18,26 +18,62 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 import webapp2
 class QueryLastFawnRecord(webapp2.RequestHandler):
+    '''query last fawn record'''
 
     def get(self):
 
         query = db.GqlQuery("SELECT * FROM Record \
                             ORDER BY record_time DESC")
-        result = query.get()
-        self.response.out.write("<b>----The last error message----<b><br />")
-        if result.error_code != '200':
-            self.response.out.write("NO RESPONSE FROM SERVER ! @ " + str(result.record_time))
-        else:
-            stnIdList = result.error_details.split(",")
-            errorTimeList = result.error_time.split(",")
-            for id in stnIdList:
-                self.response.out.write("""NO UPDATE STATION %s @ %s<br />""" %(id, str(errorTimeList[stnIdList.index(id)])))
+        showRecordHelper.showLastRecord(self,query.get())
+
 
 class QueryFawnRecord(webapp2.RequestHandler):
+    '''query fawn record in date range'''
+    def get(self):
+        html = showRecordHelper.queryHtml(self)
+        self.response.out.write(html)
+        if self.request.get("from") != "":
+            startTime = self.request.get("from").split('/')
+            endTime = self.request.get("to").split('/')
+            query = db.GqlQuery("""SELECT * FROM Record
+                                WHERE record_time > DATE(%s,%s,%s) and record_time < DATE(%s,%s,%s)
+                                """% (startTime[2],startTime[0],startTime[1],endTime[2],endTime[0],endTime[1]))
+            results = query.fetch(100)
+            showRecordHelper.showRecord(self,results,startTime, endTime)
+        self.response.out.write("""</table></body></html>""")
 
+class QueryLastFdacsRecord(webapp2.RequestHandler):
+    '''query last fdacs record '''
     def get(self):
 
-        self.response.out.write("""
+        query = db.GqlQuery("SELECT * FROM FdacsRecord \
+                            ORDER BY record_time DESC")
+
+        showRecordHelper.showLastRecord(self,query.get())
+
+class QueryFdacsRecord(webapp2.RequestHandler):
+    '''query fdacs record in date range'''
+    def get(self):
+        html = showRecordHelper.queryHtml(self)
+        self.response.out.write(html)
+        if self.request.get("from") != "":
+            startTime = self.request.get("from").split('/')
+            endTime = self.request.get("to").split('/')
+            query = db.GqlQuery("""SELECT * FROM FdacsRecord
+                                WHERE record_time > DATE(%s,%s,%s) and record_time < DATE(%s,%s,%s)
+                                """% (startTime[2],startTime[0],startTime[1],endTime[2],endTime[0],endTime[1]))
+            results = query.fetch(100)
+            showRecordHelper.showRecord(self,results,startTime,endTime)
+
+        self.response.out.write("""</table></body></html>""")
+
+class showRecordHelper():
+    '''show Record Helper'''
+    dicts = {"QueryFdacsRecord":"fdacs","QueryFawnRecord":"fawn"}
+
+    @classmethod
+    def queryHtml(self,resp):
+        return """
           <html>
           <head>
             <meta charset="utf-8">
@@ -48,47 +84,59 @@ class QueryFawnRecord(webapp2.RequestHandler):
             <link rel="stylesheet" href="/resources/demos/style.css">
             </head>
             <body>
-              <form action="/fawn/queryRecord" method="get">
+              <form action="/%s/queryRecord" method="get">
                 <label for="from">From</label>
                 <input type="text" id="from" name="from">
                 <label for="to">to</label>
                 <input type="text" id="to" name="to">
                 <div><input type="submit" value="Query"></div>
               </form>
-           """)
-        if self.request.get("from") != "":
-            startTime = self.request.get("from").split('/')
-            endTime = self.request.get("to").split('/')
-            query = db.GqlQuery("""SELECT * FROM Record
-                                WHERE record_time > DATE(%s,%s,%s) and record_time < DATE(%s,%s,%s)
-                                """% (startTime[2],startTime[0],startTime[1],endTime[2],endTime[0],endTime[1]))
-            results = query.fetch(100)
-            self.response.out.write("----RESULT----<br />")
-            self.response.out.write("""<table border="1" cellpadding="5"><tr>
+           """ % self.dicts[resp.__class__.__name__]
+    @classmethod
+    def showLastRecord(self,resp,result):
+        resp.response.out.write("<b>----The last error message----<b><br />")
+        if result is None:
+            resp.response.out.write("NO RECORD IN THE DATABASE !")
+            return
+        if result.error_code != '200':
+            resp.response.out.write("NO RESPONSE FROM SERVER ! @ " + str(result.record_time))
+            return
+        else:
+            stnIdList = result.error_details.split(",")
+            errorTimeList = result.error_time.split(",")
+            for id in stnIdList:
+                resp.response.out.write("""NO UPDATE STATION %s @ %s<br />""" %(id, str(errorTimeList[stnIdList.index(id)])))
+                return
+
+    @classmethod
+    def showRecord(self,resp,results,start,end):
+        resp.response.out.write("----RESULT FROM %s TO %s----<br />" % ("/".join(start), "/".join(end)))
+        if len(results) == 0:
+            resp.response.out.write("NO RECORD IN THE DATABASE !" )
+            return
+        resp.response.out.write("""<table border="1" cellpadding="5"><tr>
                                         <th>error_code</th>
                                         <th>error_details</th>
                                         <th>error_time</th>
                                         <th>record_time</th>
                                     </tr>""")
-            for result in results:
-                self.response.out.write("""<tr>
+
+        for result in results:
+            error_detail_list = str(result.error_details).split(',')
+            error_time_list = str(result.error_details).split(',')
+            for each_detail in error_detail_list:
+                index = error_detail_list.index(each_detail)
+                each_time = error_time_list[index]
+                resp.response.out.write("""<tr>
                                             <td align='center'>%s</td>
                                             <td align='center'>%s</td>
                                             <td align='center'>%s</td>
                                             <td align='center'>%s</td>
-                                        </tr>"""%(str(result.error_code),str(result.error_details),str(result.error_time),str(result.record_time)))
-        self.response.out.write("""</table></body></html>""")
+                                        </tr>"""%(str(result.error_code),each_detail,each_time,str(result.record_time)))
 
-class QueryLastFdacsRecord(webapp2.RequestHandler):
-
-    def get(self):
-        pass
+        return
 
 
-class QueryFdacsRecord(webapp2.RequestHandler):
-
-    def get(self):
-        pass
 
 class Option(webapp2.RequestHandler):
 
@@ -105,10 +153,8 @@ class Option(webapp2.RequestHandler):
             3.<a href="%s/queryLastRecord">query last record</a>
             </body>
             </html>
-
-
-
         """ % (path,path,path))
+        return
 
 
 

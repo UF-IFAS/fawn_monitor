@@ -39,6 +39,7 @@ class MonitorHelper():
             else:
                 pass
         resp.response.out.write("End application !<br />")
+        return
 
     @classmethod
     def allGoodInfo(self,resp):
@@ -47,6 +48,7 @@ class MonitorHelper():
         logging.info("End application")
         resp.response.out.write("No alert for %s stns !<br />" % str(resp.__class__.__name__))
         resp.response.out.write("End application ! <br />")
+        return
 
 
     @classmethod
@@ -69,6 +71,7 @@ class MonitorHelper():
                                     str(result.status_code)+"<br />")
             resp.response.out.write("<b>2. Check timeliness</b><br />")
             resp.getInfo(result)
+            return
         else:
             #retry request
             if retries > 0:
@@ -97,6 +100,7 @@ class MonitorHelper():
                 record.error_time = record.record_time
                 record.put()
                 MonitorHelper.emailErrorInfo(self.__class__.emailList,self,subject,html)
+            return
     @classmethod
     def parseJson(self,resp,result):
         '''parse Json content helper'''
@@ -159,3 +163,4 @@ class MonitorHelper():
         record.record_time = alert_time
         record.error_time = message_time
         record.put()
+        return
