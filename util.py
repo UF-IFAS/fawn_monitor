@@ -1,7 +1,9 @@
 #-------------------------------------------------------------------------------
 # Name:        util.py
-# Purpose:     1. find last error record in the database  fawn-monitor.appspot.com/queryLastRecord
-#              2. query record in specific date range fawn-monitor.appspot.com/queryRecord
+# Purpose:     1. find last error record in the database  fawn-monitor.appspot.com/fawn/queryLastRecord
+#              2. query record in specific date range fawn-monitor.appspot.com/fawn/queryRecord
+#              3. find last error record in the database  fawn-monitor.appspot.com/fdacs/queryLastRecord
+#              4. query record in specific date range fawn-monitor.appspot.com/fdacs/queryRecord
 # Author:      Dawei Jia
 #
 # Created:     12/19/2013
@@ -37,6 +39,7 @@ class QueryFawnRecord(webapp2.RequestHandler):
             endTime = self.request.get("to").split('/')
             query = db.GqlQuery("""SELECT * FROM Record
                                 WHERE record_time > DATE(%s,%s,%s) and record_time < DATE(%s,%s,%s)
+                                ORDER BY record_time DESC
                                 """% (startTime[2],startTime[0],startTime[1],endTime[2],endTime[0],endTime[1]))
             results = query.fetch(100)
             showRecordHelper.showRecord(self,results,startTime, endTime)
@@ -61,8 +64,9 @@ class QueryFdacsRecord(webapp2.RequestHandler):
             endTime = self.request.get("to").split('/')
             query = db.GqlQuery("""SELECT * FROM FdacsRecord
                                 WHERE record_time > DATE(%s,%s,%s) and record_time < DATE(%s,%s,%s)
+                                ORDER BY record_time DESC
                                 """% (startTime[2],startTime[0],startTime[1],endTime[2],endTime[0],endTime[1]))
-            results = query.fetch(100)
+            results = query.fetch(10000)
             showRecordHelper.showRecord(self,results,startTime,endTime)
 
         self.response.out.write("""</table></body></html>""")
@@ -106,7 +110,7 @@ class showRecordHelper():
             errorTimeList = result.error_time.split(",")
             for id in stnIdList:
                 resp.response.out.write("""NO UPDATE STATION %s @ %s<br />""" %(id, str(errorTimeList[stnIdList.index(id)])))
-                return
+            return
 
     @classmethod
     def showRecord(self,resp,results,start,end):
@@ -123,7 +127,7 @@ class showRecordHelper():
 
         for result in results:
             error_detail_list = str(result.error_details).split(',')
-            error_time_list = str(result.error_details).split(',')
+            error_time_list = str(result.error_time).split(',')
             for each_detail in error_detail_list:
                 index = error_detail_list.index(each_detail)
                 each_time = error_time_list[index]
