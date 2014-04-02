@@ -16,6 +16,13 @@ indexes:
   - name: record_time
     direction: desc
 
+- kind: FdacsRecord
+  properties:
+  - name: error_code
+  - name: record_time
+    direction: desc
+  - name: error_details
+
 - kind: Record
   properties:
   - name: error_code

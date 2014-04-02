@@ -151,17 +151,23 @@ class FdacsMonitor(webapp2.RequestHandler):
                 data_list.append(data["standard_date_time"])
                 data_list.append(vendor_dict[data["station_id"]]['vendor_station_id'])
                 data_list.append(vendor_dict[data["station_id"]]['vendor_name'])
+                data_list.append(vendor_dict[data["station_id"]]['grower_name'])
+                data_list.append(vendor_dict[data["station_id"]]['vendor_email'])
+                data_list.append(vendor_dict[data["station_id"]]['grower_email'])
                 logging.info(data_list)
                 ##resp.response.out.write(str(data_list) + "<br />")
                 no_update_list.append(data_list)
 
+            sql = "SELECT * FROM FdacsRecord \
+                             WHERE error_code = '200'\
+                             ORDER BY record_time DESC"
+            logging.info(sql)
+            q = db.GqlQuery(sql)
             #build email content
             html = MonitorHelper.buildEmailContent(self,no_update_list)
+            self.response.out.write("<b>Email to: %s</b>" % ",".join(self.__class__.emailList))
             self.response.out.write(html)
             #query last record in the database
-            q = db.GqlQuery("SELECT * FROM FdacsRecord \
-                             WHERE error_code = '200'\
-                             ORDER BY record_time DESC")
             queryResult = q.get()
             message = ",".join([data[0] for data in no_update_list])
             message_time = ",".join([data[1] for data in no_update_list])
@@ -176,7 +182,99 @@ class FdacsMonitor(webapp2.RequestHandler):
             #all stations are good
             MonitorHelper.allGoodInfo(self)
 
+
+class FdacsRoutineEmail(webapp2.RequestHandler):
+
+    url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json"
+    vendor_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/station/format/json"
+    record_time_delta = datetime.timedelta(hours = 4)
+    """Fdacs routine email handler"""
+    def get(self,retries = 3):
+
+        '''response request method = get'''
+        MonitorHelper.checkStatusCode(self)
+
+    def getInfo(self,result):
+
+        '''get Fdacs station infomation'''
+        #parse json
+        decoded = MonitorHelper.parseJson(self,result)
+        logging.info("Getting fresh status")
+        total_stns_num = len(decoded)
+        logging.info("There are total %d stations.<br />" % total_stns_num)
+        #fresh status
+        fresh_false_list = [data for data in decoded if data['fresh'] == False]
+        false_stns_num = len(fresh_false_list)
+        logging.info("There are %d false fresh status stations.<br />" % false_stns_num)
+        #report no update stations
+        if false_stns_num != 0:
+            alert_time = datetime.datetime.now() - self.__class__.record_time_delta
+            subject = "FDACS NO UPDATE ALERT@ %s" %(str(alert_time)[:-7])
+            logging.info(subject + "<br />")
+            vendor_lists= json.loads(urlfetch.fetch(self.__class__.vendor_url).content)
+            vendor_dict = {}
+            for vendor in vendor_lists:
+                vendor_dict[vendor['id']] = vendor
+                ##resp.response.out.write(vendor_dict[vendor['id']])
+            #build no update list
+            no_update_list = []
+            for data in fresh_false_list:
+                data_list = []
+                data_list.append(data["station_id"])
+                ##resp.response.out.write(vendor_dict[data["station_id"]]['vendor_name'])
+                data_list.append(data["standard_date_time"])
+                data_list.append(vendor_dict[data["station_id"]]['vendor_station_id'])
+                data_list.append(vendor_dict[data["station_id"]]['vendor_name'])
+                data_list.append(vendor_dict[data["station_id"]]['grower_name'])
+                data_list.append(vendor_dict[data["station_id"]]['vendor_email'])
+                data_list.append(vendor_dict[data["station_id"]]['grower_email'])
+                logging.info(data_list)
+                ##resp.response.out.write(str(data_list) + "<br />")
+                no_update_list.append(data_list)
+            #build vendor_email_list and grow_email_list dict
+            vendor_email_dict = {}
+            grower_email_dict = {}
+            for data in no_update_list:
+                #build vendor_email_list dict
+                if data[5] in vendor_email_dict.keys():
+                    vendor_email_dict[data[5]].append(data)
+                else:
+                    vendor_email_dict[data[5]] = [data]
+
+                #build grower_email_list dict
+                if data[6] in grower_email_dict.keys():
+                    grower_email_dict[data[6]].append(data)
+                else:
+                    grower_email_dict[data[6]] = [data]
+            logging.info(vendor_email_dict.items())
+            logging.info(grower_email_dict.items())
+            logging.info("<h3>Email to Grower </h3>")
+            self.response.out.write("<h3>Email to Grower </h3>")
+            #email grower
+            for k,v in grower_email_dict.items():
+                html = MonitorHelper.buildEmailContent(self,v)
+                logging.info("<b>Email to: %s</b>" % k)
+                self.response.write("<b>Email to: %s</b>" % k)
+                self.response.out.write(html)
+                logging.info(html)
+                MonitorHelper.emailErrorInfo([k],self,subject,html)
+            logging.info("<h3>Email to Vendor </h3>")
+            self.response.out.write("<h3>Email to Vendor </h3>")
+            #email vendor
+            for k,v in vendor_email_dict.items():
+                html = MonitorHelper.buildEmailContent(self,v)
+                self.response.write("<b>Email to: %s</b>" % k)
+                self.response.out.write(html)
+                logging.info("<b>Email to: %s</b>" % k)
+                logging.info(html)
+                MonitorHelper.emailErrorInfo([k],self,subject,html)
+        else:
+            #all stations are good
+            MonitorHelper.allGoodInfo(self)
+
+
 application = webapp2.WSGIApplication(
                                     [('/fawn/monitor',FawnMonitor),
-                                     ('/fdacs/monitor',FdacsMonitor)],
+                                     ('/fdacs/monitor',FdacsMonitor),
+                                     ('/fdacs/routine_vendor_email',FdacsRoutineEmail)],
                                     debug = True)

@@ -8,3 +8,8 @@ cron:
   url: /fdacs/monitor
   schedule: every 30 minutes
   timezone: America/New_York
+  
+- description: routine vendor/grower email
+  url: /fdacs/routine_vendor_email
+  schedule: every day 10:00
+  timezone: America/New_York

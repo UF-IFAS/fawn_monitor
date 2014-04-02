@@ -39,5 +39,6 @@ handlers:
 - url: /js
   static_dir: js
   
-
+- url: /fdacs/routine_vendor_email
+  script: monitor.application
   
