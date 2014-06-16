@@ -15,7 +15,12 @@ class FdacsRecord(db.Model):
     error_code = db.StringProperty(required=True)
     error_details = db.StringProperty(required=True)
     error_time = db.StringProperty()
-
+    
+    
+class EmailRecord(db.Model):
+    station_id = db.StringProperty(required = True)
+    email_time = db.DateTimeProperty()
+    
 def main():
     print "new record!"
 if __name__ == "__main__":

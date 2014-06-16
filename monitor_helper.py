@@ -116,17 +116,19 @@ class MonitorHelper():
         resp.response.out.write("Building email content!<br/>")
         html =""
         if resp.__class__.__name__ == 'FdacsMonitor' or resp.__class__.__name__ == 'FdacsRoutineEmail':
-            html = html + """<h3>Alert Info Table</h3>
+            html = html + """<h3>My Florida Farm Weather Alert</h3>
                       <table border="1" cellspacing="0" cellpadding="5">
                         <tr>
                             <th>Station_id</th>
                             <th>Vendor_id</th>
                             <th>Vendor_name</th>
                             <th>Grower_name</th>
+                            <th>Station_name</th>
                             <th>No update since</th>
                         </tr>
                       """
             for data in no_update_list:
+                logging.info(len(data))
                 html_text = """
                             <tr>
                                 <td>%s</td>
@@ -134,9 +136,10 @@ class MonitorHelper():
                                 <td>%s</td>
                                 <td>%s</td>
                                 <td>%s</td>
+                                <td>%s</td>
                             </tr>
 
-                """ % (data[0],data[2],data[3],data[4],data[1])
+                """ % (data[0],data[2],data[3],data[4],data[7],data[1])
                 html = html + html_text
         else:
             html = html + """<h3>Alert Info Table</h3>

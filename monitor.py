@@ -154,21 +154,22 @@ class FdacsMonitor(webapp2.RequestHandler):
                 data_list.append(vendor_dict[data["station_id"]]['grower_name'])
                 data_list.append(vendor_dict[data["station_id"]]['vendor_email'])
                 data_list.append(vendor_dict[data["station_id"]]['grower_email'])
+                data_list.append(vendor_dict[data["station_id"]]['station_name'])
                 logging.info(data_list)
                 ##resp.response.out.write(str(data_list) + "<br />")
                 no_update_list.append(data_list)
-
-            sql = "SELECT * FROM FdacsRecord \
+                           
+            record_sql = "SELECT * FROM FdacsRecord \
                              WHERE error_code = '200'\
                              ORDER BY record_time DESC"
-            logging.info(sql)
-            q = db.GqlQuery(sql)
+            logging.info(record_sql)
+            record_q = db.GqlQuery(record_sql)
             #build email content
             html = MonitorHelper.buildEmailContent(self,no_update_list)
             self.response.out.write("<b>Email to: %s</b>" % ",".join(self.__class__.emailList))
             self.response.out.write(html)
             #query last record in the database
-            queryResult = q.get()
+            queryResult = record_q.get()
             message = ",".join([data[0] for data in no_update_list])
             message_time = ",".join([data[1] for data in no_update_list])
             self.response.out.write("Check last record in the database<br/>")
@@ -184,10 +185,13 @@ class FdacsMonitor(webapp2.RequestHandler):
 
 
 class FdacsRoutineEmail(webapp2.RequestHandler):
-
+    
+    default_email_list = ["uffawn@gmail.com","jiadw007@gmail.com"]
     url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json"
     vendor_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/station/format/json"
     record_time_delta = datetime.timedelta(hours = 4)
+    email_time_delta = datetime.timedelta(hours = 48)
+    email_list = default_email_list[:]
     """Fdacs routine email handler"""
     def get(self,retries = 3):
 
@@ -211,6 +215,9 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
             alert_time = datetime.datetime.now() - self.__class__.record_time_delta
             subject = "FDACS NO UPDATE ALERT@ %s" %(str(alert_time)[:-7])
             logging.info(subject + "<br />")
+            #set email list
+            if false_stns_num >= total_stns_num / 2:
+                self.__class__.email_list.apeend("tiejiazhao@gmail.com")
             vendor_lists= json.loads(urlfetch.fetch(self.__class__.vendor_url).content)
             vendor_dict = {}
             for vendor in vendor_lists:
@@ -228,13 +235,61 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                 data_list.append(vendor_dict[data["station_id"]]['grower_name'])
                 data_list.append(vendor_dict[data["station_id"]]['vendor_email'])
                 data_list.append(vendor_dict[data["station_id"]]['grower_email'])
+                data_list.append(vendor_dict[data["station_id"]]['station_name'])
                 logging.info(data_list)
                 ##resp.response.out.write(str(data_list) + "<br />")
                 no_update_list.append(data_list)
+                
+            #filter no update list
+            email_record_id_list = [obj.station_id for obj in database.EmailRecord.all()]
+            no_update_filter_list = []
+            for data in no_update_list:
+                #self.response.out.write("%s <br/>" % data[0])
+                if data[0] in email_record_id_list:
+                    record = database.EmailRecord.all().filter("station_id",data[0]).get()
+                    #self.response.out.write(record.email_time)
+                    time_delta = alert_time - record.email_time
+                    #self.response.out.write("%s,  %s<br />" % (record.station_id, time_delta))
+                    if alert_time -  record.email_time < self.__class__.email_time_delta:
+                        pass
+                    else:
+                        no_update_filter_list.append(data)
+                        record.email_time= alert_time
+                        record.put()
+                else:
+                    no_update_filter_list.append(data)
+                    record = database.EmailRecord(station_id = data[0], email_time = alert_time)
+                    record.put()
+            
+            
+            #build fawn email content and insert record into fdacs record database
+            record_sql = "SELECT * FROM FdacsRecord \
+                          WHERE error_code = '200'\
+                          ORDER BY record_time DESC"
+            logging.info(record_sql)
+            record_q = db.GqlQuery(record_sql)
+            #build email content
+            if len(no_update_filter_list) != 0:
+                
+                html = MonitorHelper.buildEmailContent(self,no_update_filter_list)
+                self.response.out.write("<b>Email to: %s</b>" % ",".join(self.__class__.email_list))
+                self.response.out.write(html)
+                MonitorHelper.emailErrorInfo(self.__class__.email_list,self,subject,html)    
+            #query last record in the database
+            queryResult = record_q.get()
+            message = ",".join([data[0] for data in no_update_list])
+            message_time = ",".join([data[1] for data in no_update_list])
+            self.response.out.write("Check last record in the database<br/>")
+            if queryResult is None or message_time not in queryResult.error_time or message not in queryResult.error_details :
+                record = database.FdacsRecord(error_code = str(result.status_code),error_details = message)
+                MonitorHelper.updateRecord(self, record, alert_time,message_time)
+                        
+            
             #build vendor_email_list and grow_email_list dict
             vendor_email_dict = {}
             grower_email_dict = {}
-            for data in no_update_list:
+            
+            for data in no_update_filter_list:
                 #build vendor_email_list dict
                 if data[5] in vendor_email_dict.keys():
                     vendor_email_dict[data[5]].append(data)
