@@ -128,7 +128,7 @@ class MonitorHelper():
                         </tr>
                       """
             for data in no_update_list:
-                logging.info(len(data))
+                #logging.info(len(data))
                 html_text = """
                             <tr>
                                 <td>%s</td>
