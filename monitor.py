@@ -186,7 +186,7 @@ class FdacsMonitor(webapp2.RequestHandler):
 
 class FdacsRoutineEmail(webapp2.RequestHandler):
     
-    default_email_list = ["uffawn@gmail.com","jiadw007@gmail.com"]
+    default_email_list = ["uffawn@gmail.com","jiadw007@gmail.com","tiejiazhao@gmail.com"]
     url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json"
     vendor_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/station/format/json"
     record_time_delta = datetime.timedelta(hours = 4)
@@ -216,8 +216,8 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
             subject = "FDACS NO UPDATE ALERT@ %s" %(str(alert_time)[:-7])
             logging.info(subject + "<br />")
             #set email list
-            if false_stns_num >= total_stns_num / 2:
-                self.__class__.email_list.apeend("tiejiazhao@gmail.com")
+            ##if false_stns_num >= total_stns_num / 2:
+               ## self.__class__.email_list.apeend("tiejiazhao@gmail.com")
             vendor_lists= json.loads(urlfetch.fetch(self.__class__.vendor_url).content)
             vendor_dict = {}
             for vendor in vendor_lists:
@@ -248,7 +248,7 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                 if data[0] in email_record_id_list:
                     record = database.EmailRecord.all().filter("station_id",data[0]).get()
                     #self.response.out.write(record.email_time)
-                    time_delta = alert_time - record.email_time
+                    ## time_delta = alert_time - record.email_time
                     #self.response.out.write("%s,  %s<br />" % (record.station_id, time_delta))
                     if alert_time -  record.email_time < self.__class__.email_time_delta:
                         pass
@@ -330,6 +330,6 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
 
 application = webapp2.WSGIApplication(
                                     [('/fawn/monitor',FawnMonitor),
-                                     ('/fdacs/monitor',FdacsMonitor),
+                                     ('/fdacs/monitor',FdacsRoutineEmail),
                                      ('/fdacs/routine_vendor_email',FdacsRoutineEmail)],
                                     debug = True)
