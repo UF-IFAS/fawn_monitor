@@ -114,7 +114,18 @@ class MonitorHelper():
     def buildEmailContent(self,resp,no_update_list,addInfo = ""):
         '''bulid Email Content'''
         resp.response.out.write("Building email content!<br/>")
-        html =""
+        html ='''<p>Your weather station has failed to provide data necessary 
+		for FAWN to display on the "My Florida Farm Weather" website and/or 
+		mobile phone app (see alert below for more details). </p>
+		<p>Please contact your weather station provider/vendor (copied in this e-mail) 
+		so they can resolve this issue. After they have checked your weather station, 
+		they will need to contact FAWN (see contact information below), either to let them 
+		know the issue has been resolved or to coordinate with them to resolve the issue.</p>
+		<p>Thank you.</p>
+		<p>If you have any questions please contact:</p>
+		Rick Lusher, FAWN Director, University of Florida IFAS<br/>
+		Phone: 352-846-3219<br/>
+		E-mail: rlusher@ufl.edu<br/>'''
         if resp.__class__.__name__ == 'FdacsMonitor' or resp.__class__.__name__ == 'FdacsRoutineEmail':
             html = html + """<h3>My Florida Farm Weather Alert</h3>
                       <table border="1" cellspacing="0" cellpadding="5">
