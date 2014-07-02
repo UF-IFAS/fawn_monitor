@@ -20,6 +20,7 @@ class FdacsRecord(db.Model):
 class EmailRecord(db.Model):
     station_id = db.StringProperty(required = True)
     email_time = db.DateTimeProperty()
+    latest_email = db.BooleanProperty(default = False)
     
 def main():
     print "new record!"

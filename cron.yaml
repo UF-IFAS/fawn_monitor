@@ -4,12 +4,52 @@ cron:
   schedule: every 15 minutes
   timezone: America/New_York
  
-#- description: every 30 minutes job
-#  url: /fdacs/monitor
-#  schedule: every 30 minutes
-#  timezone: America/New_York
-  
-- description: routine vendor/grower email
-  url: /fdacs/routine_vendor_email
+- description: every 30 minutes job
+  url: /fdacs/monitor
   schedule: every 30 minutes
+  timezone: America/New_York
+  
+#- description: routine vendor/grower email
+ # url: /fdacs/routine_vendor_email
+ # schedule: every 30 minutes
+ # timezone: America/New_York
+ 
+- description: update data from agtronix
+  url: /request/agtronix
+  schedule: every day 02:50
+  timezone: America/New_York
+  
+- description: update data from spectrum
+  url: /request/spectrum
+  schedule: every day 02:00
+  timezone: America/New_York
+  
+- description: update data from rainwise
+  url: /request/rainwise
+  schedule: every day 02:20
+  timezone: America/New_York
+  
+- description: update data from Locher
+  url: /request/locher
+  schedule: every day 04:00
+  timezone: America/New_York
+  
+- description: update data from agtronix
+  url: /request/agtronix
+  schedule: every day 14:50
+  timezone: America/New_York
+  
+- description: update data from spectrum
+  url: /request/spectrum
+  schedule: every day 14:00
+  timezone: America/New_York
+  
+- description: update data from rainwise
+  url: /request/rainwise
+  schedule: every day 14:20
+  timezone: America/New_York
+  
+- description: update data from Locher
+  url: /request/locher
+  schedule: every day 16:00
   timezone: America/New_York

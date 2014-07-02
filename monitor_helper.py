@@ -22,8 +22,8 @@ class MonitorHelper():
     '''Monitor Helper'''
 
     @classmethod
-    def emailErrorInfo(self,email_list, resp, email_subject, email_html):
-        '''send error email'''
+    def emailInfo(self,email_list, resp, email_subject, email_html):
+        '''send error or restored email'''
         for user_address in email_list:
             if mail.is_email_valid(user_address):
                 resp.response.out.write("Sending email...<br />")
@@ -113,20 +113,20 @@ class MonitorHelper():
     @classmethod
     def buildEmailContent(self,resp,no_update_list,addInfo = ""):
         '''bulid Email Content'''
-        resp.response.out.write("Building email content!<br/>")
-        html ='''<p>Your weather station has failed to provide data necessary 
-		for FAWN to display on the "My Florida Farm Weather" website and/or 
-		mobile phone app (see alert below for more details). </p>
-		<p>Please contact your weather station provider/vendor (copied in this e-mail) 
-		so they can resolve this issue. After they have checked your weather station, 
-		they will need to contact FAWN (see contact information below), either to let them 
-		know the issue has been resolved or to coordinate with them to resolve the issue.</p>
-		<p>Thank you.</p>
-		<p>If you have any questions please contact:</p>
-		Rick Lusher, FAWN Director, University of Florida IFAS<br/>
-		Phone: 352-846-3219<br/>
-		E-mail: rlusher@ufl.edu<br/>'''
+        resp.response.out.write("<br/>Building email content!<br/>")
         if resp.__class__.__name__ == 'FdacsMonitor' or resp.__class__.__name__ == 'FdacsRoutineEmail':
+            html ='''<p>Your weather station has failed to provide data necessary 
+                            for FAWN to display on the "My Florida Farm Weather" website and/or 
+                            mobile phone app (see alert below for more details). </p>
+                            <p>Please contact your weather station provider/vendor (copied in this e-mail) 
+                            so they can resolve this issue. After they have checked your weather station, 
+                            they will need to contact FAWN (see contact information below), either to let them 
+                            know the issue has been resolved or to coordinate with them to resolve the issue.</p>
+                            <p>Thank you.</p>
+                            <p>If you have any questions please contact:</p>
+                            Rick Lusher, FAWN Director, University of Florida IFAS<br/>
+                            Phone: 352-846-3219<br/>
+                            E-mail: rlusher@ufl.edu<br/>'''            
             html = html + """<h3>My Florida Farm Weather Alert</h3>
                       <table border="1" cellspacing="0" cellpadding="5">
                         <tr>
@@ -157,7 +157,7 @@ class MonitorHelper():
                       <table border="1" cellspacing="0" cellpadding="5">
                         <tr>
                             <th>Station_id</th>
-                            <th>No update since</th>
+                            <th>No update since</th>lists
                         </tr>
                       """
             for data in no_update_list:
@@ -180,3 +180,28 @@ class MonitorHelper():
         record.error_time = message_time
         record.put()
         return
+    
+    @classmethod
+    def buildInfoList(self, org_list, vendor_dict):
+        info_list = []
+        for data in org_list:
+            data_list = []
+            data_list.append(data["station_id"])
+            ##resp.response.out.write(vendor_dict[daliststa["station_id"]]['vendor_name'])
+            data_list.append(data["standard_date_time"])
+            data_list.append(vendor_dict[data["station_id"]]['vendor_station_id'])
+            data_list.append(vendor_dict[data["station_id"]]['vendor_name'])
+            data_list.append(vendor_dict[data["station_id"]]['grower_name'])
+            data_list.append(vendor_dict[data["station_id"]]['vendor_email'])
+            data_list.append(vendor_dict[data["station_id"]]['grower_email'])
+            data_list.append(vendor_dict[data["station_id"]]['station_name'])
+            logging.info(data_list)
+            ##resp.response.out.write(str(data_list) + "<br />")
+            info_list.append(data_list)
+        return info_list
+    
+    @classmethod
+    def buildRestoreEmailContent(self, resp, restore_email_list):
+        
+        html = "TEST HTML<br />-----------------------------<br/>"
+        return html

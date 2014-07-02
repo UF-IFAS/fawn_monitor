@@ -41,16 +41,4 @@ handlers:
   
 - url: /fdacs/routine_vendor_email
   script: monitor.application
-
-- url: /request/agtronix
-  script: request.application
-
-- url: /request/locher
-  script: request.application
-
-- url: /request/rainwise
-  script: request.application
-
-- url: /request/spectrum
-  script: request.application
   

@@ -187,7 +187,8 @@ class FdacsMonitor(webapp2.RequestHandler):
 class FdacsRoutineEmail(webapp2.RequestHandler):
     
     default_email_list = ["uffawn@gmail.com","jiadw007@gmail.com","tiejiazhao@gmail.com",
-			"sbishop@highlandsswcd.org","Camilo.Gaitan@freshfromflorida.com"]
+			"sbishop@highlandsswcd.org","Camilo.Gaitan@freshfromflorida.com",
+			""]
     url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json"
     vendor_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/station/format/json"
     record_time_delta = datetime.timedelta(hours = 4)

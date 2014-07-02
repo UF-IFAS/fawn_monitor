@@ -152,7 +152,7 @@ class FdacsMonitor(webapp2.RequestHandler):
                 data_list.append(vendor_dict[data["station_id"]]['vendor_station_id'])
                 data_list.append(vendor_dict[data["station_id"]]['vendor_name'])
                 data_list.append(vendor_dict[data["station_id"]]['grower_name'])
-                data_list.append(vendor_dict[data["station_id"]]['vendor_email'])
+                data_list.append(vendequest/agtronixor_dict[data["ubu n tustation_id"]]['vendor_email'])
                 data_list.append(vendor_dict[data["station_id"]]['grower_email'])
                 data_list.append(vendor_dict[data["station_id"]]['station_name'])
                 logging.info(data_list)
@@ -177,7 +177,7 @@ class FdacsMonitor(webapp2.RequestHandler):
 
                 record = database.FdacsRecord(error_code = str(result.status_code),error_details = message)
                 MonitorHelper.updateRecord(self, record, alert_time,message_time)
-                MonitorHelper.emailErrorInfo(self.__class__.emailList,self,subject,html)
+                #MonitorHelper.emailErrorInfo(self.__class__.emailList,self,subject,html)
 
         else:
             #all stations are good
@@ -187,11 +187,12 @@ class FdacsMonitor(webapp2.RequestHandler):
 class FdacsRoutineEmail(webapp2.RequestHandler):
     
     default_email_list = ["uffawn@gmail.com","jiadw007@gmail.com","tiejiazhao@gmail.com",
-			"sbishop@highlandsswcd.org","Camilo.Gaitan@freshfromflorida.com"]
+			"sbishop@highlandsswcd.org","Camilo.Gaitan@freshfromflorida.com",
+			"conserv@ufl.edu"]
     url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json"
     vendor_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/station/format/json"
     record_time_delta = datetime.timedelta(hours = 4)
-    email_time_delta = datetime.timedelta(hours = 48)
+    email_time_delta = datetime.timedelta(hours = 1)
     email_list = default_email_list[:]
     """Fdacs routine email handler"""
     def get(self,retries = 3):
@@ -209,42 +210,49 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
         logging.info("There are total %d stations.<br />" % total_stns_num)
         #fresh status
         fresh_false_list = [data for data in decoded if data['fresh'] == False]
+        fresh_true_list = [data for data in decoded if data['fresh'] == True]
         false_stns_num = len(fresh_false_list)
         logging.info("There are %d false fresh status stations.<br />" % false_stns_num)
         #report no update stations
         if false_stns_num != 0:
             alert_time = datetime.datetime.now() - self.__class__.record_time_delta
-            subject = "FDACS NO UPDATE ALERT@ %s" %(str(alert_time)[:-7])
+            subject = "Weather Station Notification @ %s" %(str(alert_time)[:-7])
             logging.info(subject + "<br />")
             #set email list
             ##if false_stns_num >= total_stns_num / 2:
-               ## self.__class__.email_list.apeend("tiejiazhao@gmail.com")
+               ## self.__class__.email_liconserv@ufl.edust.apeend("tiejiazhao@gmail.com")
             vendor_lists= json.loads(urlfetch.fetch(self.__class__.vendor_url).content)
             vendor_dict = {}
             for vendor in vendor_lists:
                 vendor_dict[vendor['id']] = vendor
                 ##resp.response.out.write(vendor_dict[vendor['id']])
             #build no update list
-            no_update_list = []
-            for data in fresh_false_list:
-                data_list = []
-                data_list.append(data["station_id"])
-                ##resp.response.out.write(vendor_dict[data["station_id"]]['vendor_name'])
-                data_list.append(data["standard_date_time"])
-                data_list.append(vendor_dict[data["station_id"]]['vendor_station_id'])
-                data_list.append(vendor_dict[data["station_id"]]['vendor_name'])
-                data_list.append(vendor_dict[data["station_id"]]['grower_name'])
-                data_list.append(vendor_dict[data["station_id"]]['vendor_email'])
-                data_list.append(vendor_dict[data["station_id"]]['grower_email'])
-                data_list.append(vendor_dict[data["station_id"]]['station_name'])
-                logging.info(data_list)
-                ##resp.response.out.write(str(data_list) + "<br />")
-                no_update_list.append(data_list)
-                
+            no_update_list = MonitorHelper.buildInfoList(fresh_false_list, vendor_dict)
+            #build fawn email content and insert record into fdacs record database
+            record_sql = "SELECT * FROM FdacsRecord \
+                          WHERE error_code = '200'\
+                          ORDER BY record_time DESC"
+            logging.info(record_sql)
+            record_q = db.GqlQuery(record_sql)
+                            
+            #query last record in the database
+            queryResult = record_q.get()
+            message = ",".join([data[0] for data in no_update_list])
+            message_time = ",".join([data[1] for data in no_update_list])
+            self.response.out.write("Check last record in the database<br/>")
+            
+            #find two consecutive observations for stations
+            no_update_filter_list = []
+            if queryResult is not None:
+                no_update_filter_list = [data for data in no_update_list if data[0] in queryResult.error_details]
+            else:
+                pass
+            self.response.out.write("<h4>Two Consecutive Alert Obeservations List</h4>")
+            self.response.out.write([data[0] for data in no_update_filter_list])
+            no_update_email_list=[]
             #filter no update list
             email_record_id_list = [obj.station_id for obj in database.EmailRecord.all()]
-            no_update_filter_list = []
-            for data in no_update_list:
+            for data in no_update_filter_list: 
                 #self.response.out.write("%s <br/>" % data[0])
                 if data[0] in email_record_id_list:
                     record = database.EmailRecord.all().filter("station_id",data[0]).get()
@@ -254,43 +262,36 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                     if alert_time -  record.email_time < self.__class__.email_time_delta:
                         pass
                     else:
-                        no_update_filter_list.append(data)
+                        no_update_email_list.append(data)
                         record.email_time= alert_time
+                        record.latest_email = True
                         record.put()
                 else:
-                    no_update_filter_list.append(data)
-                    record = database.EmailRecord(station_id = data[0], email_time = alert_time)
+                    no_update_email_list.append(data)
+                    record = database.EmailRecord(station_id = data[0], email_time = alert_time, latest_email=True)
                     record.put()
-            
-            
-            #build fawn email content and insert record into fdacs record database
-            record_sql = "SELECT * FROM FdacsRecord \
-                          WHERE error_code = '200'\
-                          ORDER BY record_time DESC"
-            logging.info(record_sql)
-            record_q = db.GqlQuery(record_sql)
-            #build email content
-            if len(no_update_filter_list) != 0:
-                
-                html = MonitorHelper.buildEmailContent(self,no_update_filter_list)
-                self.response.out.write("<b>Email to: %s</b>" % ",".join(self.__class__.email_list))
-                self.response.out.write(html)
-                MonitorHelper.emailErrorInfo(self.__class__.email_list,self,subject,html)    
-            #query last record in the database
-            queryResult = record_q.get()
-            message = ",".join([data[0] for data in no_update_list])
-            message_time = ",".join([data[1] for data in no_update_list])
-            self.response.out.write("Check last record in the database<br/>")
+                    
+            self.response.out.write("<h4>Final Email Station List</h4>")
+            self.response.out.write([data[0] for data in no_update_email_list])
+            ##self.response.out.write(no_update_email_list)
+            #update record in the database
             if queryResult is None or message_time not in queryResult.error_time or message not in queryResult.error_details :
                 record = database.FdacsRecord(error_code = str(result.status_code),error_details = message)
-                MonitorHelper.updateRecord(self, record, alert_time,message_time)
-                        
+                MonitorHelper.updateRecord(self, record, alert_time,message_time)              
             
-            #build vendor_email_list and grow_email_list dict
+            #build email content
+            if len(no_update_email_list) != 0:
+                
+                html = MonitorHelper.buildEmailContent(self,no_update_email_list)
+                self.response.out.write("<b>Email to: %s</b>" % ",".join(self.__class__.email_list))
+                self.response.out.write(html)
+                MonitorHelper.emailInfo(self.__class__.email_list,self,subject,html) 
+            
+            #build vendor_email_list and grow_email_list dict for no_update_options
             vendor_email_dict = {}
             grower_email_dict = {}
             
-            for data in no_update_filter_list:
+            for data in no_update_email_list:
                 #build vendor_email_list dict
                 if data[5] in vendor_email_dict.keys():
                     vendor_email_dict[data[5]].append(data)
@@ -313,7 +314,7 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                 self.response.write("<b>Email to: %s</b>" % k)
                 self.response.out.write(html)
                 logging.info(html)
-                MonitorHelper.emailErrorInfo([k],self,subject,html)
+                MonitorHelper.emailInfo([k],self,subject,html)
             logging.info("<h3>Email to Vendor </h3>")
             self.response.out.write("<h3>Email to Vendor </h3>")
             #email vendor
@@ -323,11 +324,93 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                 self.response.out.write(html)
                 logging.info("<b>Email to: %s</b>" % k)
                 logging.info(html)
-                MonitorHelper.emailErrorInfo([k],self,subject,html)
+                MonitorHelper.emailInfo([k],self,subject,html)
+                
+                
+            #restored email options
+            self.restore_email(self, fresh_true_list,vendor_dict)            
+            #latest_email_id_list = database.EmailRecord.all().filter("latest_email", True).run()
+            #logging.info(latest_email_id_list)
+            #self.response.out.write(latest_email_id_list)
+        
         else:
             #all stations are good
             MonitorHelper.allGoodInfo(self)
-
+    
+    def restore_email(self, resp, fresh_true_list,vendor_dict):
+        '''send out the restored email'''
+        subject=""
+        resp.response.out.write("------------------------------------------")
+        resp.response.out.write("<h3>Restored Email Part</h3>")
+        latest_email_id_list = [data.station_id for data in database.EmailRecord.all().filter("latest_email", True).run()]
+        resp.response.out.write("<h4>Latest Email Station List</h4>")
+        resp.response.out.write(latest_email_id_list)
+        logging.info(latest_email_id_list)
+        #build restore station list
+        restore_station_list = [data for data in fresh_true_list if data['station_id'] in latest_email_id_list]
+        #build restore email list
+        restore_email_list = MonitorHelper.buildInfoList(restore_station_list,vendor_dict)
+        resp.response.out.write("<h4>Restored Station List</h4>")
+        resp.response.out.write(restore_email_list)
+        vendor_email_dict={}
+        grower_email_dict={}
+        for data in restore_email_list:
+            #build vendor_email_list dict
+            if data[5] in vendor_email_dict.keys():
+                vendor_email_dict[data[5]].append(data)
+            else:
+                vendor_email_dict[data[5]] = [data]
+            #build grower_email_list
+            if data[6] in grower_email_dict.keys():
+                grower_email_dict[data[6]].append(data)
+            else:
+                grower_email_dict[data[6]] = [data]
+        logging.info(vendor_email_dict.items())
+        logging.info(grower_email_dict.items())
+        logging.info("<h3>Restored Email to Grower</h3>")
+        resp.response.out.write("<h3>Restored Email to Grower</h3>")
+        test_email_list=["uffawn@gmail.com","jiadw007@gmail.com"]
+        #test email 
+        if len(restore_email_list) != 0:
+            html = MonitorHelper.buildRestoreEmailContent(self,restore_email_list)
+            self.response.out.write("<b>Restored Email to: %s</b>" % ",".join(test_email_list))
+            self.response.out.write(html)
+            MonitorHelper.emailInfo(self.__class__.email_list,self,subject,html)            
+        #email grower
+        for k,v in grower_email_dict.items():
+            
+            html = MonitorHelper.buildRestoreEmailContent(self,v)
+            logging.info("Restored Email to %s" % k)
+            resp.response.out.write("<b>Restored Email to %s </b>" % k)
+            self.response.out.write(html)
+            logging.info(html)
+            MonitorHelper.emailInfo([k],self,subject,html)            
+        
+        logging.info("<h3>Email to Vendor </h3>")
+        self.response.out.write("<h3>Restored Email to Vendor </h3>")        
+        #email vendor
+        for k,v in vendor_email_dict.items():
+            
+            html = MonitorHelper.buildEmailContent(self,v)
+            self.response.write("<b>Restored Email to: %s</b>" % k)
+            self.response.out.write(html)
+            logging.info("<b>Restored Email to: %s</b>" % k)
+            logging.info(html)
+            MonitorHelper.emailInfo([k],self,subject,html)
+            
+        #update email record in the database
+        query = database.EmailRecord.all()
+        for data in restore_station_list:
+            station_id = data["station_id"]
+            record = query.filter("station_id",station_id).get()
+            record.latest_email = False
+            record.put()
+        
+        
+            
+        
+         
+        
 
 application = webapp2.WSGIApplication(
                                     [('/fawn/monitor',FawnMonitor),
