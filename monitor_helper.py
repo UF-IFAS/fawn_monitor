@@ -115,43 +115,32 @@ class MonitorHelper():
         '''bulid Email Content'''
         resp.response.out.write("<br/>Building email content!<br/>")
         if resp.__class__.__name__ == 'FdacsMonitor' or resp.__class__.__name__ == 'FdacsRoutineEmail':
-            html ='''<p>Your weather station has failed to provide data necessary 
-                            for FAWN to display on the "My Florida Farm Weather" website and/or 
-                            mobile phone app (see alert below for more details). </p>
-                            <p>Please contact your weather station provider/vendor (copied in this e-mail) 
-                            so they can resolve this issue. After they have checked your weather station, 
-                            they will need to contact FAWN (see contact information below), either to let them 
-                            know the issue has been resolved or to coordinate with them to resolve the issue.</p>
-                            <p>Thank you.</p>
-                            <p>If you have any questions please contact:</p>
-                            Rick Lusher, FAWN Director, University of Florida IFAS<br/>
-                            Phone: 352-846-3219<br/>
-                            E-mail: rlusher@ufl.edu<br/>'''            
-            html = html + """<h3>My Florida Farm Weather Alert</h3>
-                      <table border="1" cellspacing="0" cellpadding="5">
+            station = no_update_list[0]
+            html ="""<p>FAWN has failed to receive data from the weather station listed below during the past 2 hours.</p>          
+                     <table border="1" cellspacing="0" cellpadding="5">
                         <tr>
                             <th>Station_id</th>
                             <th>Vendor_id</th>
                             <th>Vendor_name</th>
                             <th>Grower_name</th>
                             <th>Station_name</th>
-                            <th>No update since</th>
                         </tr>
-                      """
-            for data in no_update_list:
-                #logging.info(len(data))
-                html_text = """
-                            <tr>
+                        <tr>
                                 <td>%s</td>
                                 <td>%s</td>
                                 <td>%s</td>
                                 <td>%s</td>
                                 <td>%s</td>
-                                <td>%s</td>
-                            </tr>
-
-                """ % (data[0],data[2],data[3],data[4],data[7],data[1])
-                html = html + html_text
+                        </tr>
+                    </table>
+                    <p>We have contacted your weather station provider/vendor and will work with them 
+                    jointly to resolve this issue.</p>
+                    <p>We will send you an email message once the issue is resolved.</p>
+                    <p>Thank you</p>
+                    <p>If you have any questions please contact:</p>
+                    <p>Rick Lusher, FAWN Director, University of Florida IFAS<br />
+                    Phone: 352-846-3219<br />
+                    E-mail: rlusher@ufl.edu</p> """ %(station[0],station[1],station[2],station[3],station[6])
         else:
             html = html + """<h3>Alert Info Table</h3>
                       <table border="1" cellspacing="0" cellpadding="5">
@@ -169,13 +158,13 @@ class MonitorHelper():
                             </tr>
                 """ % (station_id, str(data[1]) + "&nbsp;" + addInfo)
                 html = html + html_text
-        html = html + "</table>"
+            html = html + "</table>"
         return html
 
     @classmethod
     def updateRecord(self, resp, record, alert_time, message_time):
         '''check whether insert new record in the database'''
-        resp.response.out.write("Update record in the database<br/>")
+        resp.response.out.write("<br />Update record in the database<br/>")
         record.record_time = alert_time
         record.error_time = message_time
         record.put()
@@ -183,12 +172,12 @@ class MonitorHelper():
     
     @classmethod
     def buildInfoList(self, org_list, vendor_dict):
+        '''build email info list'''
         info_list = []
         for data in org_list:
             data_list = []
             data_list.append(data["station_id"])
             ##resp.response.out.write(vendor_dict[daliststa["station_id"]]['vendor_name'])
-            data_list.append(data["standard_date_time"])
             data_list.append(vendor_dict[data["station_id"]]['vendor_station_id'])
             data_list.append(vendor_dict[data["station_id"]]['vendor_name'])
             data_list.append(vendor_dict[data["station_id"]]['grower_name'])
@@ -201,7 +190,32 @@ class MonitorHelper():
         return info_list
     
     @classmethod
-    def buildRestoreEmailContent(self, resp, restore_email_list):
-        
-        html = "TEST HTML<br />-----------------------------<br/>"
+    def buildRestoreEmailContent(self, resp, restore_station):
+        '''build restored email content'''
+        resp.response.out.write("<br/>Building email content!<br/>")
+        html = """<p>The issue we reported to you on DATE  regarding the weather station listed below has been resolved</p>
+                  <table border="1" cellspacing="0" cellpadding="5">
+                        <tr>
+                            <th>Station_id</th>
+                            <th>Vendor_id</th>
+                            <th>Vendor_name</th>
+                            <th>Grower_name</th>
+                            <th>Station_name</th>
+                        </tr>
+                        <tr>
+                                <td>%s</td>
+                                <td>%s</td>
+                                <td>%s</td>
+                                <td>%s</td>
+                                <td>%s</td>
+                        </tr>
+                    </table>
+                    <p>Your weather station is now reporting to FAWN all required data</p>
+                    <p>If you have any questions please contact:</p>
+                    <p>Rick Lusher, FAWN Director, University of Florida IFAS<br />
+                    Phone: 352-846-3219<br />
+                    E-mail: rlusher@ufl.edu</p> """ %(restore_station[0],restore_station[1],restore_station[2],
+                                                      restore_station[3],restore_station[6])
         return html
+        
+        
