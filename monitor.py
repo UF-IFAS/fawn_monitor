@@ -152,7 +152,7 @@ class FdacsMonitor(webapp2.RequestHandler):
                 data_list.append(vendor_dict[data["station_id"]]['vendor_station_id'])
                 data_list.append(vendor_dict[data["station_id"]]['vendor_name'])
                 data_list.append(vendor_dict[data["station_id"]]['grower_name'])
-                data_list.append(vendequest/agtronixor_dict[data["ubu n tustation_id"]]['vendor_email'])
+                data_list.append(vendor_dict[data["station_id"]]['vendor_email'])
                 data_list.append(vendor_dict[data["station_id"]]['grower_email'])
                 data_list.append(vendor_dict[data["station_id"]]['station_name'])
                 logging.info(data_list)
