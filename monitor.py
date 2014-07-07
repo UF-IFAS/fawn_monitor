@@ -95,7 +95,7 @@ class FawnMonitor(webapp2.RequestHandler):
 
                 record = database.Record(error_code = str(result.status_code),error_details = message)
                 MonitorHelper.updateRecord(self, record, alert_time,message_time)
-                MonitorHelper.emailErrorInfo(self.__class__.emailList,self,subject,html)
+                MonitorHelper.emailInfo(self.__class__.emailList,self,subject,html)
         else:
             MonitorHelper.allGoodInfo(self)
 
@@ -186,7 +186,7 @@ class FdacsMonitor(webapp2.RequestHandler):
 
 class FdacsRoutineEmail(webapp2.RequestHandler):
     
-    default_email_list = ["conserv@ufl.edu","Camilo.Gaitan@freshfromflorida.com","sbishop@highlandsswcd.org"]
+    default_email_list = ["conserv@ufl.edu","Camilo.Gaitan@freshfromflorida.com","sbishop@highlandsswcd.org","rlusher@ufl.edu"]
     url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json"
     vendor_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/station/format/json"
     record_time_delta = datetime.timedelta(hours = 4)
@@ -239,7 +239,7 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                 if q_result is not None :
                     records_lists.append(q_result.error_details)
             message = ",".join([data[0] for data in no_update_list])
-            message_time = ",".join([data[1] for data in no_update_list])
+            message_time = ",".join([data[7] for data in no_update_list])
             self.response.out.write("Check last record in the database<br/>")
             
             #find four consecutive observations for stations
@@ -305,9 +305,14 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                     html = MonitorHelper.buildEmailContent(self,[info])
                     self.response.out.write(html)
                     self.response.out.write("<br />")
-                    logging.info(html)
+                    #logging.info(html)
                     recipient=self.__class__.default_email_list[:]
-                    recipient.append(info[4])
+                    
+                    if info[4] == "Ag-tronix":
+                        recipient.append("sonya@ag-tronix.com")
+                        recipient.append("scottf@ag-tronix.com")
+                    else:
+                        recipient.append(info[4])
                     recipient.append(info[5])
                     logging.info("<b>Email to: %s</b>" % ",".join(recipient))
                     self.response.write("<b>Email to: %s</b><br />" % ",".join(recipient))                    
@@ -368,7 +373,10 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
             #latest_email_id_list = database.EmailRecord.all().filter("latest_email", True).run()
             #logging.info(latest_email_id_list)
             #self.response.out.write(latest_email_id_list)
-        
+            #q_result = database.EmailRecord.all().run()
+            #for result in q_result:
+                #self.response.out.write(result.email_time.strftime("%Y-%m-%d %H:%M:%S"))
+                #self.response.out.write("<br />")
         else:
             #all stations are good
             MonitorHelper.allGoodInfo(self)
@@ -391,10 +399,12 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
         #build restore email content and send out email
         if len(restore_email_list) !=0:
             for info in restore_email_list:
-                html = MonitorHelper.buildRestoreEmailContent(self,info)
+                q_result = database.EmailRecord.all().filter("station_id",info[0]).get()
+                time = q_result.email_time.strftime("%Y-%m-%d %H:%M:%S")
+                html = MonitorHelper.buildRestoreEmailContent(self,info,time)
                 self.response.out.write(html)
                 self.response.out.write("<br />")
-                logging.info(html)
+                #logging.info(html)
                 recipient=self.__class__.default_email_list[:]
                 recipient.append(info[4])
                 recipient.append(info[5])

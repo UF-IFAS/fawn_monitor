@@ -141,12 +141,13 @@ class MonitorHelper():
                     <p>Rick Lusher, FAWN Director, University of Florida IFAS<br />
                     Phone: 352-846-3219<br />
                     E-mail: rlusher@ufl.edu</p> """ %(station[0],station[1],station[2],station[3],station[6])
+            return html
         else:
-            html = html + """<h3>Alert Info Table</h3>
+            html = """<h3>Alert Info Table</h3>
                       <table border="1" cellspacing="0" cellpadding="5">
                         <tr>
                             <th>Station_id</th>
-                            <th>No update since</th>lists
+                            <th>No update since</th>
                         </tr>
                       """
             for data in no_update_list:
@@ -159,7 +160,7 @@ class MonitorHelper():
                 """ % (station_id, str(data[1]) + "&nbsp;" + addInfo)
                 html = html + html_text
             html = html + "</table>"
-        return html
+            return html
 
     @classmethod
     def updateRecord(self, resp, record, alert_time, message_time):
@@ -184,16 +185,17 @@ class MonitorHelper():
             data_list.append(vendor_dict[data["station_id"]]['vendor_email'])
             data_list.append(vendor_dict[data["station_id"]]['grower_email'])
             data_list.append(vendor_dict[data["station_id"]]['station_name'])
+            data_list.append(data["standard_date_time"])
             logging.info(data_list)
             ##resp.response.out.write(str(data_list) + "<br />")
             info_list.append(data_list)
         return info_list
     
     @classmethod
-    def buildRestoreEmailContent(self, resp, restore_station):
+    def buildRestoreEmailContent(self, resp, restore_station, time):
         '''build restored email content'''
         resp.response.out.write("<br/>Building email content!<br/>")
-        html = """<p>The issue we reported to you on DATE  regarding the weather station listed below has been resolved</p>
+        html = """<p>The issue we reported to you on %s regarding the weather station listed below has been resolved</p>
                   <table border="1" cellspacing="0" cellpadding="5">
                         <tr>
                             <th>Station_id</th>
@@ -214,7 +216,7 @@ class MonitorHelper():
                     <p>If you have any questions please contact:</p>
                     <p>Rick Lusher, FAWN Director, University of Florida IFAS<br />
                     Phone: 352-846-3219<br />
-                    E-mail: rlusher@ufl.edu</p> """ %(restore_station[0],restore_station[1],restore_station[2],
+                    E-mail: rlusher@ufl.edu</p> """ %(time,restore_station[0],restore_station[1],restore_station[2],
                                                       restore_station[3],restore_station[6])
         return html
         
