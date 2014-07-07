@@ -308,7 +308,7 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                     #logging.info(html)
                     recipient=self.__class__.default_email_list[:]
                     
-                    if info[4] == "Ag-tronix":
+                    if info[2] == "Ag-tronix":
                         recipient.append("sonya@ag-tronix.com")
                         recipient.append("scottf@ag-tronix.com")
                     else:
@@ -406,7 +406,11 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                 self.response.out.write("<br />")
                 #logging.info(html)
                 recipient=self.__class__.default_email_list[:]
-                recipient.append(info[4])
+                if info[2] == "Ag-tronix":
+                    recipient.append("sonya@ag-tronix.com")
+                    recipient.append("scottf@ag-tronix.com")
+                else:
+                    recipient.append(info[4])
                 recipient.append(info[5])
                 logging.info("<b>Email to: %s</b>" % ",".join(recipient))
                 self.response.write("<b>Email to: %s</b><br />" % ",".join(recipient))                    
