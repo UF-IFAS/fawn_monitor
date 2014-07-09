@@ -40,7 +40,28 @@ class MonitorHelper():
                 pass
         resp.response.out.write("End application !<br /><br />")
         return
-
+    @classmethod
+    def emailFdacsInfo(self, email_list, resp, email_subject, email_html):
+        '''send Fdacs error or restored email'''
+        grower_email_address = email_list[-1]
+        if mail.is_email_valid(grower_email_address):
+            resp.response.out.write("Sending email...<br />")
+            logging.info(grower_email_address)
+            sender_address = "uffawn@gmail.com"
+            message = mail.EmailMessage(sender = sender_address,subject = email_subject)
+            message.to = grower_email_address
+            message.cc = email_list[:-1]
+            resp.response.out.write("TO: " + str(message.to) + "<br />")
+            resp.response.out.write("CC: " + str(message.cc) + "<br /sw>")
+            message.body = " "
+            message.html = email_html
+            message.send()
+            resp.response.out.write("Sending out... <br />")
+            
+        else:
+            pass
+        resp.response.out.write("End application !<br /><br />")            
+        
     @classmethod
     def allGoodInfo(self,resp):
         '''Action for all good stations info'''
@@ -220,4 +241,36 @@ class MonitorHelper():
                                                       restore_station[3],restore_station[6])
         return html
         
+    @classmethod
+    def buildUnfixedEmailContent(self,resp, unfixed_list):
+        '''build unfixed email content'''
+        resp.response.out.write("<h4>Building unfixed email content!</h4>")
+        html = """<p>The following stations are unfixed during weekly checking period.</p>
+        <table border="1" cellspacing="0" cellpadding="5">
+             <tr>
+                 <th>Station_id</th>
+                 <th>Station_name</th>
+                 <th>Vendor_name</th>
+                 <th>No_update_since</th>
+                 
+             </tr>
+        
+        """
+        for data in unfixed_list:
+            html_text = """
+            
+            <tr>
+                <td>%s</td>
+                <td>%s</td>
+                <td>%s</td>
+                <td>%s</td>
+                
+            </tr>
+            
+            
+            """ %(str(data[0]), data[1], data[2], str(data[3]))
+            html = html + html_text
+        html = html + "</table>"
+        resp.response.out.write(html)
+        return html
         

@@ -317,7 +317,7 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                     logging.info("<b>Email to: %s</b>" % ",".join(recipient))
                     self.response.write("<b>Email to: %s</b><br />" % ",".join(recipient))                    
                     subject = "%s weather station data issue" % info[6]
-                    MonitorHelper.emailInfo(recipient,self,subject,html)
+                    MonitorHelper.emailFdacsInfo(recipient,self,subject,html)
             
             '''
             #build email content
@@ -407,15 +407,15 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                 #logging.info(html)
                 recipient=self.__class__.default_email_list[:]
                 if info[2] == "Ag-tronix":
-			recipient.append("sonya@ag-tronix.com")
-                        recipient.append("scottf@ag-tronix.com")
+                    recipient.append("sonya@ag-tronix.com")
+                    recipient.append("scottf@ag-tronix.com")
                 else:
-                        recipient.append(info[4])
-                    recipient.append(info[5])
+                    recipient.append(info[4])
+                recipient.append(info[5])
                 logging.info("<b>Email to: %s</b>" % ",".join(recipient))
                 self.response.write("<b>Email to: %s</b><br />" % ",".join(recipient))                    
                 subject = "%s weather station data issue resolved" % info[6]
-                MonitorHelper.emailInfo(recipient,self,subject,html)                
+                MonitorHelper.emailFdacsInfo(recipient,self,subject,html)                
             
         #update email record in the database
         for data in restore_station_list:

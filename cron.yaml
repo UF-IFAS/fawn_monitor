@@ -53,3 +53,8 @@ cron:
   url: /request/locher
   schedule: every day 16:00
   timezone: America/New_York
+  
+- description : unfixed weekly report
+  url: /fdacs/unfixed_email
+  schedule: every monday 10:00
+  timezone: America/New_York

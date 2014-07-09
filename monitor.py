@@ -200,7 +200,7 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
 
     def getInfo(self,result):
 
-        '''get Fdacs station infomation'''
+        '''get Fdacs station information'''
         #parse json
         decoded = MonitorHelper.parseJson(self,result)
         logging.info("Getting fresh status")
@@ -317,7 +317,7 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                     logging.info("<b>Email to: %s</b>" % ",".join(recipient))
                     self.response.write("<b>Email to: %s</b><br />" % ",".join(recipient))                    
                     subject = "%s weather station data issue" % info[6]
-                    MonitorHelper.emailInfo(recipient,self,subject,html)
+                    MonitorHelper.emailFdacsInfo(recipient,self,subject,html)
             
             '''
             #build email content
@@ -415,7 +415,7 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                 logging.info("<b>Email to: %s</b>" % ",".join(recipient))
                 self.response.write("<b>Email to: %s</b><br />" % ",".join(recipient))                    
                 subject = "%s weather station data issue resolved" % info[6]
-                MonitorHelper.emailInfo(recipient,self,subject,html)                
+                MonitorHelper.emailFdacsInfo(recipient,self,subject,html)                
             
         #update email record in the database
         for data in restore_station_list:
@@ -426,12 +426,35 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
         
         
             
+class FdacsUnfixedEmail(webapp2.RequestHandler):
+    '''Fdacs Unfixed Email'''
+    url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json"
+    email_address = "rlusher@ufl.edu"
+    def get(self):
+        unfixed_station_id_list = [data.station_id for data in database.EmailRecord.all().filter("latest_email", True).run()]
+        self.response.out.write("<h4>There are %d unfixed stations.</h4>" % len(unfixed_station_id_list))
+        result = urlfetch.fetch(self.__class__.url)
+        decoded = json.loads(result.content)
+        info_list = []
+        for station in unfixed_station_id_list:
+            station_info = [data for data in decoded if data['station_id'] == station]
+            data_list=[]
+            data_list.append(station)
+            data_list.append(station_info[0]["station_name"])
+            data_list.append(station_info[0]["vendor_name"])
+            data_list.append(station_info[0]["standard_date_time"])
+            info_list.append(data_list)
+        html = MonitorHelper.buildUnfixedEmailContent(self,info_list)
+        subject = "Unfixed Station Weekly Report"
+        MonitorHelper.emailInfo([self.__class__.email_address], self, subject, html)
         
+    
          
         
 
 application = webapp2.WSGIApplication(
                                     [('/fawn/monitor',FawnMonitor),
                                      ('/fdacs/monitor',FdacsRoutineEmail),
-                                     ('/fdacs/routine_vendor_email',FdacsRoutineEmail)],
+                                     ('/fdacs/routine_vendor_email',FdacsRoutineEmail),
+                                     ('/fdacs/unfixed_email', FdacsUnfixedEmail)],
                                     debug = True)
