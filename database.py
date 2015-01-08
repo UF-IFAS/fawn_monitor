@@ -5,16 +5,16 @@ class Record(db.Model):
 
     record_time = db.DateTimeProperty()
     error_code = db.StringProperty(required=True)
-    error_details = db.StringProperty(required=True)
-    error_time = db.StringProperty()
+    error_details = db.TextProperty(required=True)
+    error_time = db.TextProperty()
 
 
 
 class FdacsRecord(db.Model):
     record_time = db.DateTimeProperty()
     error_code = db.StringProperty(required=True)
-    error_details = db.StringProperty(required=True)
-    error_time = db.StringProperty()
+    error_details = db.TextProperty(required=True)
+    error_time = db.TextProperty()
     
     
 class EmailRecord(db.Model):
