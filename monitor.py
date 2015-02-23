@@ -31,7 +31,7 @@ class FawnMonitor(webapp2.RequestHandler):
                '121','304','303','230','371','270','290','320','350','460',
                '275','180','405','440','470','340','160','490','120','420',
                '140','425']
-    emailList = ["jiadw007@gmail.com","lstaudt@ufl.edu","rlusher@ufl.edu","gbraun@ufl.edu","tiejiazhao@gmail.com","ohyeahfanfan@gmail.com"]
+    emailList = ["jiadw007@gmail.com","lstaudt@ufl.edu","rlusher@ufl.edu","gbraun@ufl.edu"]
     record_time_delta = datetime.timedelta(hours = 4)
     fawnStn_time_delta = datetime.timedelta(hours = 1)
     no_update_time_delta = datetime.timedelta(hours = 2)
@@ -187,6 +187,8 @@ class FdacsMonitor(webapp2.RequestHandler):
 class FdacsRoutineEmail(webapp2.RequestHandler):
     
     default_email_list = ["conserv@ufl.edu","Camilo.Gaitan@freshfromflorida.com","sbishop@highlandsswcd.org","rlusher@ufl.edu"]
+    
+    #default_email_list = ["rlusher@ufl.edu"]
     url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/latestobz/format/json"
     vendor_url = "http://fdacswx.fawn.ifas.ufl.edu/index.php/read/station/format/json"
     record_time_delta = datetime.timedelta(hours = 4)
@@ -311,6 +313,8 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                     if info[2] == "Ag-tronix":
                         recipient.append("sonya@ag-tronix.com")
                         recipient.append("scottf@ag-tronix.com")
+                    elif info[2] == "Spectrum Technologies Inc":
+                    	recipient.append("bbozarth@specmeters.com")
                     else:
                         recipient.append(info[4])
                     recipient.append(info[5])
@@ -409,6 +413,8 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                 if info[2] == "Ag-tronix":
                     recipient.append("sonya@ag-tronix.com")
                     recipient.append("scottf@ag-tronix.com")
+                elif info[2] == "Spectrum Technologies Inc":
+                    recipient.append("bbozarth@specmeters.com")
                 else:
                     recipient.append(info[4])
                 recipient.append(info[5])
@@ -446,7 +452,7 @@ class FdacsUnfixedEmail(webapp2.RequestHandler):
             info_list.append(data_list)
         html = MonitorHelper.buildUnfixedEmailContent(self,info_list)
         subject = "Unfixed Station Weekly Report"
-        MonitorHelper.emailInfo([self.__class__.email_address], self, subject, html)
+        MonitorHelper.emailInfo([self.__class__.email_address,"uffawn@gmail.com"], self, subject, html)
         
     
          
