@@ -245,7 +245,7 @@ class MonitorHelper():
     def buildUnfixedEmailContent(self,resp, unfixed_list):
         '''build unfixed email content'''
         resp.response.out.write("<h4>Building unfixed email content!</h4>")
-        html = """<p>The following stations are unfixed during weekly checking period.</p>
+        html = """<p>The following %d stations are unfixed during daily checking period.</p>
         <table border="1" cellspacing="0" cellpadding="5">
              <tr>
                  <th>Station_id</th>
@@ -255,7 +255,7 @@ class MonitorHelper():
                  
              </tr>
         
-        """
+        """ %(len(unfixed_list))
         for data in unfixed_list:
             html_text = """
             

@@ -13,7 +13,7 @@ cron:
  # schedule: every 30 minutes
  # timezone: America/New_York
   
-- description : unfixed weekly report
+- description : unfixed daily report
   url: /fdacs/unfixed_email
   schedule: every day 10:00
   timezone: America/New_York

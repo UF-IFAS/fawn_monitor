@@ -421,7 +421,7 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                 logging.info("<b>Email to: %s</b>" % ",".join(recipient))
                 self.response.write("<b>Email to: %s</b><br />" % ",".join(recipient))                    
                 subject = "%s weather station data issue resolved" % info[6]
-                MonitorHelper.emailFdacsInfo(recipient,self,subject,html)                
+                MonitorHelper.emailFdacsInfo(recipient,self,subject,html)
             
         #update email record in the database
         for data in restore_station_list:
@@ -442,17 +442,19 @@ class FdacsUnfixedEmail(webapp2.RequestHandler):
         result = urlfetch.fetch(self.__class__.url)
         decoded = json.loads(result.content)
         info_list = []
-        for station in unfixed_station_id_list:
-            station_info = [data for data in decoded if data['station_id'] == station]
+        for station_id in unfixed_station_id_list:
+            station_info = [data for data in decoded if data['station_id'] == station_id]
             data_list=[]
-            data_list.append(station)
+            data_list.append(station_id)
             data_list.append(station_info[0]["station_name"])
             data_list.append(station_info[0]["vendor_name"])
             data_list.append(station_info[0]["standard_date_time"])
             info_list.append(data_list)
+        info_list = sorted(info_list, key= lambda x: datetime.datetime.strptime(x[3],"%Y-%m-%d %H:%M:%S"),reverse=True)
         html = MonitorHelper.buildUnfixedEmailContent(self,info_list)
-        subject = "Unfixed Station Weekly Report"
+        subject = "Unfixed Station Daily Report"
         MonitorHelper.emailInfo([self.__class__.email_address,"uffawn@gmail.com"], self, subject, html)
+        #MonitorHelper.emailInfo(["uffawn@gmail.com"], self, subject, html)
         
     
          
