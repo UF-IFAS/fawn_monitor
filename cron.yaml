@@ -4,16 +4,14 @@ cron:
   schedule: every 15 minutes
   timezone: America/New_York
  
-- description: every 30 minutes job
-  url: /fdacs/monitor
-  schedule: every 30 minutes
-  timezone: America/New_York
+#- description: every 30 minutes job
+  #url: /fdacs/monitor
+  #schedule: every 30 minutes
+  #timezone: America/New_York
 #- description: routine vendor/grower email
  # url: /fdacs/routine_vendor_email
  # schedule: every 30 minutes
- # timezone: America/New_York
-  
-- description : unfixed daily report
-  url: /fdacs/unfixed_email
-  schedule: every day 10:00
-  timezone: America/New_York
+ # timezone: America/New_York- description : unfixed daily report
+  #url: /fdacs/unfixed_email
+  #schedule: every day 10:00
+  #timezone: America/New_York

@@ -63,6 +63,7 @@ class FawnMonitor(webapp2.RequestHandler):
             else:
                 data_list.append(fawnStn_time)
                 self.response.out.write(str(data['stnID']) +": "+str(fawnStn_time) + "  " + season)
+            data_list.append(data['stnName'])
             fawnData.append(data_list)
         logging.info("Getting stnID...")
         self.response.out.write("<br />Getting fawn stnID...<br />")
@@ -71,6 +72,7 @@ class FawnMonitor(webapp2.RequestHandler):
         logging.info("Getting no update stnID...")
         self.response.out.write(len(no_update_list))
         self.response.out.write("<br />Getting no update stnID...<br />")
+        #MonitorHelper.pushNotification(self,[])
         #report no update stations
         if len(no_update_list) != 0:
 
@@ -96,6 +98,7 @@ class FawnMonitor(webapp2.RequestHandler):
                 record = database.Record(error_code = str(result.status_code),error_details = message)
                 MonitorHelper.updateRecord(self, record, alert_time,message_time)
                 MonitorHelper.emailInfo(self.__class__.emailList,self,subject,html)
+                MonitorHelper.pushNotification(self,self.no_update_list)
         else:
             MonitorHelper.allGoodInfo(self)
 
@@ -315,13 +318,15 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                         recipient.append("scottf@ag-tronix.com")
                     elif info[2] == "Spectrum Technologies Inc":
                     	recipient.append("bbozarth@specmeters.com")
+                    elif info[2] == "McCrometer":
+                        recipient.append("ConnectTechSupport@mccrometer.com")
                     else:
                         recipient.append(info[4])
                     recipient.append(info[5])
                     logging.info("<b>Email to: %s</b>" % ",".join(recipient))
                     self.response.write("<b>Email to: %s</b><br />" % ",".join(recipient))                    
                     subject = "%s weather station data issue" % info[6]
-                    MonitorHelper.emailFdacsInfo(recipient,self,subject,html)
+                    #MonitorHelper.emailFdacsInfo(recipient,self,subject,html)
             
             '''
             #build email content
@@ -415,13 +420,15 @@ class FdacsRoutineEmail(webapp2.RequestHandler):
                     recipient.append("scottf@ag-tronix.com")
                 elif info[2] == "Spectrum Technologies Inc":
                     recipient.append("bbozarth@specmeters.com")
+                elif info[2] == "McCrometer":
+                    recipient.append("ConnectTechSupport@mccrometer.com")
                 else:
                     recipient.append(info[4])
                 recipient.append(info[5])
                 logging.info("<b>Email to: %s</b>" % ",".join(recipient))
                 self.response.write("<b>Email to: %s</b><br />" % ",".join(recipient))                    
                 subject = "%s weather station data issue resolved" % info[6]
-                MonitorHelper.emailFdacsInfo(recipient,self,subject,html)
+                #MonitorHelper.emailFdacsInfo(recipient,self,subject,html)
             
         #update email record in the database
         for data in restore_station_list:

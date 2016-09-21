@@ -12,6 +12,7 @@ import logging
 import json
 import datetime
 import database
+import urbanairship as ua
 from google.appengine.api import users
 #from google.appengine.ext import webapp
 from google.appengine.api import urlfetch
@@ -273,4 +274,23 @@ class MonitorHelper():
         html = html + "</table>"
         resp.response.out.write(html)
         return html
+    @classmethod
+    def pushNotification(self, resp, no_update_list):
+        '''push notification'''
+        resp.response.out.write("<br/>Start Pushing Notification <br/>")
+        airship = ua.Airship('LTjlWamyTzyBHhVmzMLu_A','OB3h24o3RYOan5-JQWdVGQ')
+        push = airship.create_push()
+        push.device_types = ua.device_types('ios')
+#        if len(no_update_list) == 0:
+#            push.audience = ua.tag('260')
+#            push.notification = ua.notification(alert="FAWN TESTING")
+        for data in no_update_list:
+            message = """%s is offline with FAWN for 2 hours.""" %(data[2])
+            resp.response.out.write(message)
+            push.audience = ua.tag(data[0])
+            push.notification = ua.notification(alert = message)
+            push.send()
+        #resp.response.out.write(airship)
+
+
         
