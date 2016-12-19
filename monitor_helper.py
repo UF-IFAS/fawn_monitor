@@ -280,7 +280,7 @@ class MonitorHelper():
         resp.response.out.write("<br/>Start Pushing Notification <br/>")
         airship = ua.Airship('LTjlWamyTzyBHhVmzMLu_A','OB3h24o3RYOan5-JQWdVGQ')
         push = airship.create_push()
-        push.device_types = ua.device_types('ios')
+        push.device_types = ua.device_types('ios','android')
 #        if len(no_update_list) == 0:
 #            push.audience = ua.tag('260')
 #            push.notification = ua.notification(alert="FAWN TESTING")

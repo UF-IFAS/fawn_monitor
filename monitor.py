@@ -98,7 +98,7 @@ class FawnMonitor(webapp2.RequestHandler):
                 record = database.Record(error_code = str(result.status_code),error_details = message)
                 MonitorHelper.updateRecord(self, record, alert_time,message_time)
                 MonitorHelper.emailInfo(self.__class__.emailList,self,subject,html)
-                MonitorHelper.pushNotification(self,self.no_update_list)
+                MonitorHelper.pushNotification(self,no_update_list)
         else:
             MonitorHelper.allGoodInfo(self)
 
