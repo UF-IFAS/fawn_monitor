@@ -31,7 +31,7 @@ class FawnMonitor(webapp2.RequestHandler):
                '121','304','303','230','371','270','290','320','350','460',
                '275','180','405','440','470','340','160','490','120','420',
                '140','425']
-    emailList = ["jiadw007@gmail.com","lstaudt@ufl.edu","rlusher@ufl.edu","gbraun@ufl.edu"]
+    emailList = ["jiadw007@gmail.com","lstaudt@ufl.edu","rlusher@ufl.edu","lst@ufl.edu"]
     record_time_delta = datetime.timedelta(hours = 4)
     fawnStn_time_delta = datetime.timedelta(hours = 1)
     no_update_time_delta = datetime.timedelta(hours = 2)
